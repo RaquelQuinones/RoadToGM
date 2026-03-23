@@ -27,7 +27,8 @@ function App() {
      <ExBoard />
       
     </div>
-    
+    <br />
+    <br />
     <div style={{
       width: '400px',
       height:'400px'

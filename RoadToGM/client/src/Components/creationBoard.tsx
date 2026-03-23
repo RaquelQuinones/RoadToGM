@@ -1,10 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Chessboard, ChessboardProvider, defaultPieces, fenStringToPositionObject, SparePiece, type PieceDropHandlerArgs, } from 'react-chessboard'
 const sisterPort = 'http://localhost:3000';
 
- //fetch(sisterPort + '/create', {method:'POST', headers: { 'Content-Type' : 'application/json' }, body: JSON.stringify(move)})
-        //.then((res) => res.json())
-        //.then((data) => setPos(data.fen));
 const CBoard = () => {
     //Keeps track if kings have been placed
     var [wKing, setW] = useState(true);
@@ -14,17 +11,24 @@ const CBoard = () => {
     var [boardPos, setPos] = useState(fenStringToPositionObject('8/8/8/8/8/8/8/8',8,8));
     var [squareSize, setSquare] = useState<number | null>(null);
     const refBoard = structuredClone(boardPos);
+    const refChess = useRef(new chess());
+    
     //Gets size of squares so spare pieces can be same size
     useEffect(()=>{
         const square = document.querySelector(`[data-column="a"][data-row="1"]`)?.getBoundingClientRect();
         setSquare(square?.width ?? null);
     }, []);
 
+    const savePos = () => {
+        
+    }
     //makes moves when pieces are drop inside board
     const makeMove = (move) => {
+        console.log('done')
         var currPos = refBoard;
         currPos[move.to] = {pieceType: move.piece.pieceType};
         delete currPos[move.from]
+        console.log(refBoard, 'value logged');
         setPos(refBoard);
     } 
     //creates new piece when spares are set inside
@@ -62,8 +66,7 @@ const CBoard = () => {
         }else{
             makeMove(move);
         }
-       
-
+        console.log(boardPos)
         return true;
     }
 
@@ -77,7 +80,6 @@ const CBoard = () => {
                 whitePieceSelector.push(pieceType as string);
             }
         }else{
-            console.log(pieceType);
             if(pieceType[0] == 'b' && bKing){
                 blackPieceSelector.push(pieceType as string);
             }else if(pieceType[0] == 'w' && wKing){
@@ -120,7 +122,7 @@ const CBoard = () => {
                 <SparePiece pieceType={pieceType} />
 
                 </div>)}
-
+            <button onClick={savePos}> </button>
          </div> : null}
 
         </ChessboardProvider>
