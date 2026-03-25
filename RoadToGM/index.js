@@ -21,18 +21,24 @@ const PORT = 3000;
 const sisterPort = 5173;
 app.use(cors({origin: `http://localhost:${sisterPort}`}));
 
-
 const game = new Chess();
 let boardState = game.fen();
 
-console.log(game.moves());
+const insertExercise = async ( exerciseData ) => {
+  return db.one(`
+    INSERT INTO exercise(iPos, solution, color)
+    VALUES($(iPos), $(solution), $(color))
+    RETURNING exercise_id
+    `,(exerciseData.exData))
 
+}
+const buildExercise = async (id) => {
+  return db.one(`
+    SELECT * FROM exercise
+    WHERE exercise_id = ($1)
+    `,id)
+}
 app.use('/node_modules',express.static(path.join(__dirname,'node_modules')));//all libraries are included here
-
-app.get('/move',(req,res) => {
-  console.log(req.body);
-  res.end();
-})
 
 app.get('/reset', (req,res) => {
   game.reset();
@@ -57,11 +63,17 @@ app.get('/test',async (req,res)=>{
   res.json(position);
 });
 
-app.post('/create',(req,res) => {
-  console.log(req.body);
-  game.move(req.body);
-  position = {fen: game.fen()};
-  res.json(position);
+app.get('/build', async (req,res) => {
+  const exData = await buildExercise(4); 
+  res.json(exData);
+})
+
+app.post('/create',async (req,res) => {
+  const exData = req.body;
+  console.log(exData,"this is it");
+  await insertExercise(exData)
+  .then( (id) => console.log(id) );
+  
 })
 
 app.listen(PORT, () => {
