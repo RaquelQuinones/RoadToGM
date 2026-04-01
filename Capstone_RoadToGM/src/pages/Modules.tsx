@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import UpperBar, {
   UpperBarLeft,
   UpperBarRight,
@@ -11,25 +12,42 @@ import SearchBar from "../components/SearchBar";
 import { colors } from "../palette/color.js";
 import Logo from "../images/Logo.png";
 
-// Module Page -> This will have all modules, categories, cards 
-// Module Detail page (diffent one) -> Module Title, description, list of exercises in that module (each exercises have a start exercise thing)
-//Exercise Page -> Exercise Tittle, module name, description/instructions, the board compononent, maybe reset button, hint button and progress info :D
+type Module = {
+  module_id: number;
+  title: string;
+  description: string;
+  category: string;
+  is_default: boolean;
+};
 
-
-
-export default function ModulePage() {
+export default function Modules() {
   const [search, setSearch] = useState("");
+  const [modules, setModules] = useState<Module[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const modules = [
-    { title: "Peon", category: "Tactics", href: "/exercise/1" },
-    { title: "Alfiler", category: "Tactics", href: "/tactics/alfiler" },
-    { title: "Caballo", category: "Tactics", href: "/tactics/caballo" },
-    { title: "estrategia1", category: "Strategies", href: "/strategies/w" },
-    { title: "estrategia2", category: "Strategies", href: "/strategies/s" },
-    { title: "open1", category: "Openings", href: "/openings/a" },
-    { title: "open2", category: "Openings", href: "/openings/b" },
-    { title: "open3", category: "Endings", href: "/endings/four" },
-  ];
+  useEffect(() => {
+    async function loadModules() {
+      try {
+        const response = await fetch("http://localhost:3000/modules");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch modules");
+        }
+
+        const data = await response.json();
+        console.log("Modules from backend:", data);
+        setModules(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Failed to load modules");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadModules();
+  }, []);
 
   const filteredModules = useMemo(() => {
     const query = search.toLowerCase().trim();
@@ -38,9 +56,10 @@ export default function ModulePage() {
 
     return modules.filter((module) =>
       module.title.toLowerCase().includes(query) ||
-      module.category.toLowerCase().includes(query)
+      module.category.toLowerCase().includes(query) ||
+      module.description.toLowerCase().includes(query)
     );
-  }, [search]);
+  }, [search, modules]);
 
   return (
     <div
@@ -135,60 +154,95 @@ export default function ModulePage() {
           />
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: "20px",
-          }}
-        >
-          {filteredModules.map((module, index) => (
-            <a
-              key={index}
-              href={module.href}
-              style={{
-                textDecoration: "none",
-                background: colors.surface || "#2A2A2A",
-                border: `1px solid ${colors.surfaceLight || "#3A3A3A"}`,
-                borderRadius: "16px",
-                padding: "20px",
-                color: colors.white,
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "14px",
-                  color: colors.text,
-                }}
-              >
-                {module.category}
-              </span>
-
-              <span
-                style={{
-                  fontSize: "22px",
-                  fontWeight: 700,
-                }}
-              >
-                {module.title}
-              </span>
-            </a>
-          ))}
-        </div>
-
-        {filteredModules.length === 0 && (
+        {loading && (
           <p
             style={{
-              marginTop: "32px",
-              color: colors.text,
-              fontSize: "16px",
+              color: colors.white,
+              fontSize: "18px",
             }}
           >
-            No modules found.
+            Loading modules...
           </p>
+        )}
+
+        {error && (
+          <p
+            style={{
+              color: "red",
+              fontSize: "18px",
+            }}
+          >
+            Error: {error}
+          </p>
+        )}
+
+        {!loading && !error && (
+          <>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: "20px",
+              }}
+            >
+              {filteredModules.map((module) => (
+                <Link
+                  key={module.module_id}
+                  to={`/modules/${module.module_id}`}
+                  style={{
+                    textDecoration: "none",
+                    background: colors.surface || "#2A2A2A",
+                    border: `1px solid ${colors.surfaceLight || "#3A3A3A"}`,
+                    borderRadius: "16px",
+                    padding: "20px",
+                    color: colors.white,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      color: colors.text,
+                    }}
+                  >
+                    {module.category}
+                  </span>
+
+                  <span
+                    style={{
+                      fontSize: "22px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {module.title}
+                  </span>
+
+                  <span
+                    style={{
+                      fontSize: "15px",
+                      color: colors.text,
+                    }}
+                  >
+                    {module.description}
+                  </span>
+                </Link>
+              ))}
+            </div>
+
+            {filteredModules.length === 0 && (
+              <p
+                style={{
+                  marginTop: "32px",
+                  color: colors.text,
+                  fontSize: "16px",
+                }}
+              >
+                No modules found.
+              </p>
+            )}
+          </>
         )}
       </main>
     </div>

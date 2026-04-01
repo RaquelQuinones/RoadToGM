@@ -14,6 +14,8 @@ import Logo from "../images/Logo.png";
 // import Person2 from "../images/person2.jpg";
 // import Person3 from "../images/person3.jpg";
 
+//This needs the story, photo, who is behing this, why we are doing this, the resolution and a footer.
+
 export default function About() {
   const teamMembers = [
     {

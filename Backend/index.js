@@ -12,14 +12,12 @@ const db = pgp({
   password: 'RoadToTest'
 })
 
-const app = express(); 
+const app = express();
 
+app.use(cors());
 app.use(express.json());
 
-//Ports for communication while developtment
-const PORT = 3000; 
-const sisterPort = 5173;
-app.use(cors({origin: `http://localhost:${sisterPort}`}));
+const PORT = 3000;
 
 const game = new Chess();
 let boardState = game.fen();
@@ -39,6 +37,7 @@ const buildExercise = async (id) => {
     `,id)
 }
 app.use('/node_modules',express.static(path.join(__dirname,'node_modules')));//all libraries are included here
+
 
 app.get('/reset', (req,res) => {
   game.reset();
@@ -75,6 +74,62 @@ app.post('/create',async (req,res) => {
   .then( (id) => console.log(id) );
   
 })
+
+app.get("/modules", async (req, res) => {
+  try {
+    const data = await db.any("SELECT * FROM modules ORDER BY module_id ASC");
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching modules:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/modules/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await db.one("SELECT * FROM modules WHERE module_id = $1", [id]);
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching module:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/exercises/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await db.oneOrNone(
+      "SELECT exercise_id, iPos, solution, color FROM exercise WHERE exercise_id = $1",
+      [id]
+    );
+
+    if (!data) {
+      return res.status(404).json({ error: "Exercise not found" });
+    }
+
+    let parsedSolution = data.solution;
+    if (typeof parsedSolution === "string") {
+      try {
+        parsedSolution = JSON.parse(parsedSolution);
+      } catch {
+        parsedSolution = [];
+      }
+    }
+
+    res.json({
+      exercise_id: data.exercise_id,
+      title: `Exercise ${data.exercise_id}`,
+      description: "Solve the exercise on the board below.",
+      initial_fen: data.iPos,
+      solution_moves: parsedSolution,
+      side_to_move: data.color,
+    });
+  } catch (err) {
+    console.error("Error fetching exercise:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

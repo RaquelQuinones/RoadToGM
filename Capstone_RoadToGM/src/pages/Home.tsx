@@ -6,6 +6,13 @@ import ModuleCatalog from "../components/ModuleCatalog";
 import { colors } from "../palette/color.js";
 
 
+
+//This needs navigation menu, hero photo or video, headline and subheading, action button, a way to highligh the objectives/what we are offering and footer! 
+//I want a a hero photo with the Login button/signup button/start?
+// I then want like a carusel of the thing we offer with action buttons, which is the module explore page, make module, make exercicses, but ofc there should be a check if the user is logged in or not for that to work. :D
+// All of these things I want them to be componenets to be reused in other areas ofc.
+
+
 export default function Home() {
   const moduleSections = [
     {
