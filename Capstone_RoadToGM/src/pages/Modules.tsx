@@ -11,11 +11,17 @@ import SearchBar from "../components/SearchBar";
 import { colors } from "../palette/color.js";
 import Logo from "../images/Logo.png";
 
+// Module Page -> This will have all modules, categories, cards 
+// Module Detail page (diffent one) -> Module Title, description, list of exercises in that module (each exercises have a start exercise thing)
+//Exercise Page -> Exercise Tittle, module name, description/instructions, the board compononent, maybe reset button, hint button and progress info :D
+
+
+
 export default function ModulePage() {
   const [search, setSearch] = useState("");
 
   const modules = [
-    { title: "Peon", category: "Tactics", href: "/tactics/peon" },
+    { title: "Peon", category: "Tactics", href: "/exercise/1" },
     { title: "Alfiler", category: "Tactics", href: "/tactics/alfiler" },
     { title: "Caballo", category: "Tactics", href: "/tactics/caballo" },
     { title: "estrategia1", category: "Strategies", href: "/strategies/w" },
