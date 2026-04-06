@@ -1,29 +1,46 @@
 import { useRef, useState } from 'react'
-import { Chessboard, fenStringToPositionObject, type PieceDropHandlerArgs } from 'react-chessboard'
+import { Chessboard, type DraggingPieceDataType, type PieceDropHandlerArgs } from 'react-chessboard'
 import { Chess } from 'chess.js'
 const sisterPort = 'http://localhost:3000';
 
 
 const ExBoard = () =>{
     var [boardPos, setPos] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');
-    
+    const currExercise = useRef({} as exercise);
+    const turnCount = useRef(0);
     const refBoard = useRef(new Chess());
     const currBoard = refBoard.current
 
-    function onPieceDrop({sourceSquare, targetSquare, piece}:PieceDropHandlerArgs){
-        const move = {from: sourceSquare, to:targetSquare ,piece: piece};
-        if(targetSquare){currBoard.move({from: sourceSquare, to:targetSquare})}
+    type move = { from: string, to: string | null, pieceType: DraggingPieceDataType };
+    type exercise = { ipos: string, solution: string[], color: boolean };
+    
+    const makeMove = (move:move) => {
+        if(move.to){
+            currBoard.move({from: move.from, to: move.to})
+        }
+        if(currBoard.history().pop() != currExercise.current.solution[turnCount.current]){
+            currBoard.undo();
+            turnCount.current = turnCount.current - 1;
+        }
         setPos(currBoard.fen());
-        
-        console.log(boardPos);
+        turnCount.current = turnCount.current + 1;
+    }
 
+    function onPieceDrop({sourceSquare, targetSquare, piece}:PieceDropHandlerArgs){
+        const moveAttempt = {from: sourceSquare, to:targetSquare ,pieceType: piece};
+        makeMove(moveAttempt);
+        
         return true;
     }
-    const fetchExercise = () => {
-        fetch( sisterPort + '/build',{method: 'GET', headers: { 'Content-Type': 'application/json' }})
-        .then(res => res.json())
-        .then(data => setPos(data.ipos))
+    const fetchExercise = async () => {
+        const res = await fetch( sisterPort + '/build',{method: 'GET', headers: { 'Content-Type': 'application/json' }});
+        const data = await res.json();
+        currExercise.current = data;
+        setPos(data.ipos);
+        currBoard.load(data.ipos);
+        turnCount.current = 0;
     }
+
     const resetPos = () =>{
         setPos('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');
         currBoard.reset();
