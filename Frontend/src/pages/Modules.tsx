@@ -11,13 +11,17 @@ import UpperBar, {
 import SearchBar from "../components/SearchBar";
 import { colors } from "../palette/color.js";
 import Logo from "../images/Logo.png";
+import AuthStatus from "../components/AuthStatus";
 
-type Module = {
+export type Module = {
   module_id: number;
   title: string;
   description: string;
   category: string;
-  is_default: boolean;
+  difficulty?: string;
+  is_default?: boolean;
+  is_published?: boolean;
+  user_id?: number;
 };
 
 export default function Modules() {
@@ -85,25 +89,16 @@ export default function Modules() {
         </UpperBarLeft>
 
         <UpperBarRight>
-          <UpperBarButton onClick={() => console.log("login")}>
-            Login
-          </UpperBarButton>
-
-          <UpperBarButton
-            variant="filled"
-            onClick={() => console.log("signup")}
-          >
-            Sign Up
-          </UpperBarButton>
+          <AuthStatus />
 
           <DropdownBar
             title="Menu"
             links={[
               { label: "Home", href: "/" },
               { label: "About", href: "/about" },
-              { label: "Contact", href: "/contact" },
-              { label: "Test", href: "/about" },
               { label: "Explore", href: "/modules" },
+              { label: "Create", href: "/create" },
+              { label: "My Modules", href: "/my-modules" },
             ]}
             triggerStyle={{ background: colors.buttonPrimary }}
             itemProps={{ target: "_self" }}
