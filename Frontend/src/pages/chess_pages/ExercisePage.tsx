@@ -14,6 +14,9 @@ import UpperBar, {
 } from "../../components/UpperBar";
 import Logo from "../../images/Logo.png";
 import { colors } from "../../palette/color.js";
+import AuthStatus from "../../components/AuthStatus";
+
+
 
 export default function ExercisePage() {
   const { id } = useParams<{ id: string }>();
@@ -66,16 +69,7 @@ export default function ExercisePage() {
         </UpperBarLeft>
 
         <UpperBarRight>
-          <UpperBarButton onClick={() => console.log("login")}>
-            Login
-          </UpperBarButton>
-
-          <UpperBarButton
-            variant="filled"
-            onClick={() => console.log("signup")}
-          >
-            Sign Up
-          </UpperBarButton>
+          <AuthStatus />
 
           <DropdownBar
             title="Menu"

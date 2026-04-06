@@ -1,6 +1,6 @@
 import React from "react";
-import LessonCard from "../components/LessonCards";
-import { colors } from "../palette/color.js";
+import LessonCard from "../../components/LessonCards.jsx";
+import { colors } from "../../palette/color.js";
 
 export default function LessonCardTest() {
   return (

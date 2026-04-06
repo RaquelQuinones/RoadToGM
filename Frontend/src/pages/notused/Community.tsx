@@ -1,5 +1,5 @@
 import React from "react";
-import { colors } from "../palette/color.js";
+import { colors } from "../../palette/color.js";
 
 export default function Community() {
   return (

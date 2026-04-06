@@ -1,21 +1,34 @@
-import React from "react";
+import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import UpperBar, {
   UpperBarLeft,
   UpperBarRight,
   UpperBarLogo,
   UpperBarTitle,
-  UpperBarButton,
   DropdownBar,
 } from "../components/UpperBar";
 import ModuleCatalog from "../components/ModuleCatalog";
 import HeroSection from "../components/web/HeroSection";
 import ObjectivesGrid from "../components/web/Grid";
 import Footer from "../components/web/Footer";
+import AuthStatus from "../components/AuthStatus";
 
 import Logo from "../images/Logo.png";
 import { colors } from "../palette/color.js";
 
 export default function Home() {
+  const navigate = useNavigate();
+
+  const currentUser = useMemo(() => {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }, []);
+
   const moduleSections = [
     {
       title: "Tactics",
@@ -73,7 +86,7 @@ export default function Home() {
       title: "Create Your Own Training",
       text: "Design your own modules and exercises so your preparation matches the way you want to learn.",
       image: Logo,
-      href: "/create-module",
+      href: "/create",
     },
     {
       eyebrow: "Share",
@@ -101,7 +114,7 @@ export default function Home() {
     >
       <UpperBar>
         <UpperBarLeft>
-          <UpperBarLogo onClick={() => console.log("logo click")}>
+          <UpperBarLogo onClick={() => navigate("/")}>
             <img
               src={Logo}
               alt="Road To GM Logo"
@@ -115,16 +128,7 @@ export default function Home() {
         </UpperBarLeft>
 
         <UpperBarRight>
-          <UpperBarButton onClick={() => console.log("login")}>
-            Login
-          </UpperBarButton>
-
-          <UpperBarButton
-            variant="filled"
-            onClick={() => console.log("signup")}
-          >
-            Sign Up
-          </UpperBarButton>
+          <AuthStatus />
 
           <DropdownBar
             title="Menu"
@@ -132,7 +136,8 @@ export default function Home() {
               { label: "Home", href: "/" },
               { label: "About", href: "/about" },
               { label: "Explore", href: "/modules" },
-              { label: "Community", href: "/community" },
+              { label: "Create", href: "/create" },
+              { label: "My Modules", href: "/my-modules" },
             ]}
             triggerStyle={{ background: colors.buttonPrimary }}
             itemProps={{
@@ -153,8 +158,8 @@ export default function Home() {
         <HeroSection
           title="Train chess with structure, not randomness."
           subtitle="Road To GM helps you learn through organized modules, interactive exercises, and personalized training routines you can build and revisit anytime."
-          buttonText="Get Started"
-          buttonHref="/modules"
+          buttonText={currentUser ? "Create Content" : "Get Started"}
+          buttonHref={currentUser ? "/create" : "/signup"}
           image={Logo}
         />
 

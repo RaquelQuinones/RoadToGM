@@ -10,6 +10,8 @@ import UpperBar, {
 import MeetOurTeam from "../components/MeetOurTeam";
 import { colors } from "../palette/color.js";
 import Logo from "../images/Logo.png";
+import AuthStatus from "../components/AuthStatus";
+
 // import Person1 from "../images/person1.jpg";
 // import Person2 from "../images/person2.jpg";
 // import Person3 from "../images/person3.jpg";
@@ -67,22 +69,16 @@ export default function About() {
         </UpperBarLeft>
 
         <UpperBarRight>
-          <UpperBarButton onClick={() => console.log("login")}>
-            Login
-          </UpperBarButton>
-
-          <UpperBarButton variant="filled" onClick={() => console.log("signup")}>
-            Sign Up
-          </UpperBarButton>
+          <AuthStatus />
 
           <DropdownBar
             title="Menu"
             links={[
               { label: "Home", href: "/" },
               { label: "About", href: "/about" },
-              { label: "Community", href: "/community" },
-              { label: "Test", href: "/clubs" },
               { label: "Explore", href: "/modules" },
+              { label: "Create", href: "/create" },
+              { label: "My Modules", href: "/my-modules" },
             ]}
             triggerStyle={{ background: colors.buttonPrimary }}
             itemProps={{ target: "_self" }}
