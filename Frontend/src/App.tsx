@@ -6,6 +6,7 @@ import Modules from "./pages/Modules";
 import ModuleDetailsPage from "./pages/ModuleDetailsPage";
 import ExercisePage from "./pages/chess_pages/ExercisePage";
 import CreateModulePage from "./pages/CreateModulePage";
+import CreateContentPage from "./pages/CreateContentPage";
 
 export default function App() {
   return (
@@ -15,7 +16,7 @@ export default function App() {
       <Route path="/modules" element={<Modules />} />
       <Route path="/modules/:id" element={<ModuleDetailsPage />} />
       <Route path="/exercise/:id" element={<ExercisePage />} />
-      <Route path="/create-module" element={<CreateModulePage />} />
+      <Route path="/create-module" element={<CreateContentPage />} />
     </Routes>
   );
 }
