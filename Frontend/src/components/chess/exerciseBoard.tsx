@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Chessboard, type DraggingPieceDataType, type PieceDropHandlerArgs } from 'react-chessboard'
-import { Chess } from 'chess.js'
+import { Chess, type Color } from 'chess.js'
 const sisterPort = 'http://localhost:3000';
 
 
@@ -14,6 +14,16 @@ const ExBoard = () =>{
     type move = { from: string, to: string | null, pieceType: DraggingPieceDataType };
     type exercise = { ipos: string, solution: string[], color: boolean };
     
+    const autoMove = () => {
+        currBoard.move(currExercise.current.solution[turnCount.current]);
+        turnCount.current = turnCount.current + 1;
+        setPos(currBoard.fen());
+    }
+
+    if(turnCount.current % 2 != 0){console.log(currExercise.current.solution[turnCount.current])
+        autoMove();
+    }
+
     const makeMove = (move:move) => {
         if(move.to){
             currBoard.move({from: move.from, to: move.to})
@@ -27,6 +37,7 @@ const ExBoard = () =>{
     }
 
     function onPieceDrop({sourceSquare, targetSquare, piece}:PieceDropHandlerArgs){
+        if(sourceSquare == targetSquare){return false;}
         const moveAttempt = {from: sourceSquare, to:targetSquare ,pieceType: piece};
         makeMove(moveAttempt);
         
@@ -38,6 +49,7 @@ const ExBoard = () =>{
         currExercise.current = data;
         setPos(data.ipos);
         currBoard.load(data.ipos);
+        if(data.color){currBoard.setTurn('b' as Color);}
         turnCount.current = 0;
     }
 

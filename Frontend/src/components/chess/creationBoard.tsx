@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Chessboard, ChessboardProvider, defaultPieces, fenStringToPositionObject, SparePiece, type DraggingPieceDataType, type PieceDropHandlerArgs, } from 'react-chessboard'
+import { Chessboard, ChessboardProvider, defaultPieces, SparePiece, type DraggingPieceDataType, type PieceDropHandlerArgs, } from 'react-chessboard'
 import { Chess, type PieceSymbol, type Square, type Color } from 'chess.js';
 
 const sisterPort = 'http://localhost:3000';
@@ -24,6 +24,7 @@ const CBoard = () => {
     type move = { from: string, to: string | null, pieceType: DraggingPieceDataType };
     type exercise = { iPos: string, solution: string[], color: boolean }
 
+    //Saves an exercise to the Data Base
     const saveExercise = async (exData :exercise) =>{
         console.log(exData);
         const res = await fetch(sisterPort + '/create',{method:'POST',
@@ -37,6 +38,7 @@ const CBoard = () => {
         setSquare(square?.width ?? null);
     }, []);
 
+    //Player has set an initial position for his exercise if already an initial postion is chosen save the exercise in the DB
     const savePos = () => {
         if(initialPos){
         currChess.setCastlingRights('w', {k:true ,q:true});
@@ -44,12 +46,18 @@ const CBoard = () => {
         console.log(currChess.fen());
         refInitial.current = currChess.fen();
         }else{
-            const exData = {iPos: selectedInitial, solution: currChess.history(), color: true}
+            let exSolution = currChess.history();
+            const turnColor = currChess.history()[0] == '--';
+            
+            if(turnColor){exSolution = exSolution.slice(1);}
+
+            const exData = {iPos: selectedInitial, solution: exSolution, color: turnColor};
             saveExercise(exData);
         }
         setInitial(false);
     }
 
+    //Player wishes to change something about initial position or change plays made beforehand
     const cancelPos = () => {
         currChess.load(selectedInitial);
         setPos(selectedInitial);
@@ -65,6 +73,8 @@ const CBoard = () => {
                 const remove = currChess.remove(from as Square); 
                 const place = currChess.put({color: piece[0] as Color, type: piece[1].toLowerCase() as PieceSymbol},to as Square);
             }else{
+                //Detects which side started the exercise solution
+                if(currChess.history().length == 0){currChess.setTurn(piece[0] as Color)}
                 //plays moves with rules attached
                 currChess.move({from: from, to:to });
             }
@@ -74,7 +84,6 @@ const CBoard = () => {
     //creates new piece when spares are set inside
     const placePiece = ({ from, to, pieceType }:move) => {
         var piece = pieceType.pieceType;
-        //error throwing posible?
         const success = currChess.put({color: piece[0] as Color, type: piece[1].toLowerCase() as PieceSymbol},to as Square);
         if(piece[1] == 'K'){
             if(piece[0] == 'b'){
@@ -97,6 +106,7 @@ const CBoard = () => {
     }
 
     function onPieceDrop({sourceSquare, targetSquare, piece}:PieceDropHandlerArgs){
+        if(sourceSquare == targetSquare){return false;}
         const move = {from: sourceSquare, to:targetSquare, pieceType: piece};
         if(piece.isSparePiece){
             placePiece(move);
