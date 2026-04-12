@@ -223,9 +223,10 @@ app.post("/test", (req, res) => {
   }
 });
 
-app.get("/build", async (req, res) => {
+app.get("/build/:id", async (req, res) => {
   try {
-    const exData = await buildExercise(4);
+    const id = req.params.id;
+    const exData = await buildExercise(id);
     res.json(exData);
   } catch (err) {
     console.error("Error in /build:", err);
@@ -236,7 +237,6 @@ app.get("/build", async (req, res) => {
 app.post("/create", async (req, res) => {
   try {
     const exData = req.body;
-    console.log(exData, "this is it");
     const id = await insertExercise(exData);
     res.json({ success: true, id });
   } catch (err) {

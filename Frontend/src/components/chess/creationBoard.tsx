@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState} from 'react';
 import { Chessboard, ChessboardProvider, defaultPieces, SparePiece, type DraggingPieceDataType, type PieceDropHandlerArgs, } from 'react-chessboard'
 import { Chess, type PieceSymbol, type Square, type Color } from 'chess.js';
 
 const sisterPort = 'http://localhost:3000';
 
-const CBoard = () => {
+const CBoard = ({ ref }:{ref?: any}) => {
     //Keeps track if kings have been placed
     var [wKing, setW] = useState(true);
     var [bKing, setB] = useState(true);
-    var [initialPos, setInitial] = useState(true);
+    var initialPos = useRef(true);
+    const setInitial = (set: boolean) => {initialPos.current = set;}
 
     //all board information needed
     var [boardPos, setPos] = useState('8/8/8/8/8/8/8/8 w - - 0 1');
@@ -16,22 +17,21 @@ const CBoard = () => {
     
     //Saves the initial position selected by the user
     const refInitial = useRef('');
-    const selectedInitial = refInitial.current;
 
     const refChess = useRef(new Chess(boardPos,{skipValidation: true}));
     const currChess = refChess.current;
 
     type move = { from: string, to: string | null, pieceType: DraggingPieceDataType };
-    type exercise = { iPos: string, solution: string[], color: boolean }
+    type exercise = { ipos: string, solution: string[], color: boolean };
 
     //Saves an exercise to the Data Base
     const saveExercise = async (exData :exercise) =>{
-        console.log(exData);
         const res = await fetch(sisterPort + '/create',{method:'POST',
             headers:{'Content-Type': 'application/json'},
             body: JSON.stringify({exData})})
         console.log(res);
     }
+
     //Gets size of squares so spare pieces can be same size
     useEffect(()=>{
         const square = document.querySelector(`[data-column="a"][data-row="1"]`)?.getBoundingClientRect();
@@ -40,10 +40,15 @@ const CBoard = () => {
 
     //Player has set an initial position for his exercise if already an initial postion is chosen save the exercise in the DB
     const savePos = () => {
-        if(initialPos){
+        if(initialPos.current){
         currChess.setCastlingRights('w', {k:true ,q:true});
         currChess.setCastlingRights('b',{k:true , q:true});
-        console.log(currChess.fen());
+        try{
+        currChess.load(currChess.fen());
+        }catch(err){
+            console.log(err);
+            return false;
+        }
         refInitial.current = currChess.fen();
         }else{
             let exSolution = currChess.history();
@@ -51,25 +56,42 @@ const CBoard = () => {
             
             if(turnColor){exSolution = exSolution.slice(1);}
 
-            const exData = {iPos: selectedInitial, solution: exSolution, color: turnColor};
+            const exData = {ipos: refInitial.current, solution: exSolution, color: turnColor}
+    
             saveExercise(exData);
         }
+        
         setInitial(false);
+        return true;
     }
 
     //Player wishes to change something about initial position or change plays made beforehand
     const cancelPos = () => {
-        currChess.load(selectedInitial);
-        setPos(selectedInitial);
+        if(refInitial.current == ''){
+            clearBoard();
+            return true;
+        }
+        try{currChess.load(refInitial.current)}
+        catch(err){
+            console.log(err)
+            return false;
+        }
+        setPos(refInitial.current);
         setInitial(true);
-
+        return true;
+    }
+    const clearBoard = ()=> {
+        currChess.clear();
+        setPos(currChess.fen());
+        setB(true);
+        setW(true);
     }
 
     //makes moves when pieces are drop inside board
     const movePiece = ({ from, to, pieceType }:move) => {
         var piece = pieceType.pieceType;
         if(to){
-            if(initialPos){
+            if(initialPos.current){
                 const remove = currChess.remove(from as Square); 
                 const place = currChess.put({color: piece[0] as Color, type: piece[1].toLowerCase() as PieceSymbol},to as Square);
             }else{
@@ -120,7 +142,7 @@ const CBoard = () => {
 
     const blackPieceSelector: string[] = [];
     const whitePieceSelector: string[] = [];
-    if(initialPos){
+    if(initialPos.current){
         for(const pieceType of Object.keys(defaultPieces)){
             if(pieceType[1] != 'K'){
                 if(pieceType[0] == 'b'){
@@ -137,6 +159,19 @@ const CBoard = () => {
             }
         }
     }
+    function showFen(){
+        console.log(currChess.fen());
+        console.log(currChess.history())
+    }
+
+    useImperativeHandle(ref,()=> ({
+        onPieceDrop,
+        savePos,
+        cancelPos,
+        clearBoard,
+        getCurrBoard: () => currChess
+    }), [onPieceDrop, savePos, cancelPos, clearBoard]);
+
     var boardOptions = {position: boardPos, onPieceDrop};
     return(
         <>
@@ -176,6 +211,7 @@ const CBoard = () => {
         </ChessboardProvider>
         <button onClick={savePos}> Save </button>
         <button onClick={cancelPos}> Cancel </button>
+        <button onClick={showFen}> show fen</button>
         </>
     )
 }

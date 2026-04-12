@@ -1,10 +1,10 @@
-import { useRef, useState } from 'react'
+import { useImperativeHandle, useRef, useState } from 'react'
 import { Chessboard, type DraggingPieceDataType, type PieceDropHandlerArgs } from 'react-chessboard'
 import { Chess, type Color } from 'chess.js'
 const sisterPort = 'http://localhost:3000';
 
 
-const ExBoard = () =>{
+const ExBoard = ({ ref }: {ref?: any}) =>{
     var [boardPos, setPos] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');
     const currExercise = useRef({} as exercise);
     const turnCount = useRef(0);
@@ -43,8 +43,9 @@ const ExBoard = () =>{
         
         return true;
     }
-    const fetchExercise = async () => {
-        const res = await fetch( sisterPort + '/build',{method: 'GET', headers: { 'Content-Type': 'application/json' }});
+
+    const fetchExercise = async (id: any) => {
+        const res = await fetch( sisterPort + `/build/${id}`,{method: 'GET', headers: { 'Content-Type': 'application/json' }});
         const data = await res.json();
         currExercise.current = data;
         setPos(data.ipos);
@@ -57,6 +58,12 @@ const ExBoard = () =>{
         setPos('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');
         currBoard.reset();
     }
+
+    useImperativeHandle(ref,()=> ({
+            onPieceDrop,
+            fetchExercise,
+            autoMove
+        }), [onPieceDrop,fetchExercise,autoMove]);
 
     var boardOptions = {position: boardPos,onPieceDrop};
     return(
