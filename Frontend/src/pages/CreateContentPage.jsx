@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import CBoard from "../components/chess/creationBoard";
 import UpperBar, {
   UpperBarLeft,
   UpperBarRight,
@@ -40,7 +41,7 @@ export default function CreateContentPage() {
     description: "",
     difficulty: "Beginner",
     ipos: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    solution: '["e2e4"]',
+    solution: ['e2','e4'],
     color: "w",
   });
 
@@ -459,6 +460,14 @@ export default function CreateContentPage() {
                       gap: "18px",
                     }}
                   >
+                    <div style={{
+                      width: '400px',
+                     height:'400px'
+                    }}>
+                    <CBoard />
+                    </div>
+                    <br /><br /><br /><br />
+
                     <label>
                       Module
                       <br />

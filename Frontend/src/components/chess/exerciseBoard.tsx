@@ -58,7 +58,9 @@ const ExBoard = ({ ref }: {ref?: any}) =>{
         setPos('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');
         currBoard.reset();
     }
-
+    const buttonFetch = () => {
+        fetchExercise(1);
+    }
     useImperativeHandle(ref,()=> ({
             onPieceDrop,
             fetchExercise,
@@ -75,7 +77,7 @@ const ExBoard = ({ ref }: {ref?: any}) =>{
         reset
         </button>
 
-        <button onClick={fetchExercise}>
+        <button onClick={buttonFetch}>
         build exercise
         </button>
         </>

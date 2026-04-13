@@ -293,11 +293,7 @@ export default function ExercisePage() {
                       maxWidth: "980px",
                     }}
                   >
-                    <ExerciseBoard
-                      initialFen={exercise.initial_fen}
-                      solutionMoves={exercise.solution_moves}
-                      sideToMove={exercise.side_to_move}
-                    />
+                  <ExerciseBoard/>
                   </div>
                 </div>
               </section>

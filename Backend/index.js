@@ -73,7 +73,7 @@ const insertExercise = async (exerciseData) => {
     VALUES ($(ipos), $(solution), $(color))
     RETURNING exercise_id
     `,
-    exerciseData
+    exerciseData.exData
   );
 };
 
