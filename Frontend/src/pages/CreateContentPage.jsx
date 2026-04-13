@@ -456,17 +456,19 @@ export default function CreateContentPage() {
                   <form
                     onSubmit={handleCreateExercise}
                     style={{
-                      display: "grid",
+                      display: "flex",
+                      flexDirection:"column",
                       gap: "18px",
                     }}
                   >
                     <div style={{
-                      width: '400px',
-                     height:'400px'
+                      display: 'inline-block',  
+                      minWidth: '100%',         
+                      height: 'auto',
+                      overflow: 'visible'
                     }}>
                     <CBoard />
                     </div>
-                    <br /><br /><br /><br />
 
                     <label>
                       Module
