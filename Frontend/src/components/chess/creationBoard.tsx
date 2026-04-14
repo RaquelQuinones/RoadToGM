@@ -85,6 +85,7 @@ const CBoard = ({ ref }:{ref?: any}) => {
         setPos(currChess.fen());
         setB(true);
         setW(true);
+        setInitial(true);
     }
 
     //makes moves when pieces are drop inside board
@@ -95,7 +96,7 @@ const CBoard = ({ ref }:{ref?: any}) => {
                 const remove = currChess.remove(from as Square); 
                 const place = currChess.put({color: piece[0] as Color, type: piece[1].toLowerCase() as PieceSymbol},to as Square);
             }else{
-                //Detects which side started the exercise solution
+                //plays moves with rules attached
                 if(currChess.history().length == 0){currChess.setTurn(piece[0] as Color)}
                 //plays moves with rules attached
                 currChess.move({from: from, to:to });

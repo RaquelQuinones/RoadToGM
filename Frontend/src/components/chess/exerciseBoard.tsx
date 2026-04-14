@@ -64,7 +64,8 @@ const ExBoard = ({ ref }: {ref?: any}) =>{
     useImperativeHandle(ref,()=> ({
             onPieceDrop,
             fetchExercise,
-            autoMove
+            autoMove,
+            getColor: () => currBoard.turn()
         }), [onPieceDrop,fetchExercise,autoMove]);
 
     var boardOptions = {position: boardPos,onPieceDrop};

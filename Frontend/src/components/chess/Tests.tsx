@@ -11,16 +11,28 @@ const defaultPos = [
 
 ]
 
+//manual solution insertions
+const solution_white = [['g1','f3','wN'],['g8','f6','bN'],['b1','c3','wN'],['b8','c6','bN']];
+const play_white = [['g1','f3','wN'],['b1','c3','wN']];
+const solution_black = [['g8','f6','bN'],['g1','f3','wN'],['b8','c6','bN'],['b1','c3','wN']];
+const play_black = [['g8','f6','bN'],['b8','c6','bN']];
+
+const castling_enpassant_Pos = [
+    ['a8','bR'],['h8','bR'],['e8','bK'],['e1','wK'],['a1','wR'],['h1','wR'],
+    ['d7','bP'],['f4','bP'],['e2','wP'],['c5','wP']
+]
+
+const special_moves = [
+    ['e2','e4','wP'],['f4','e3','bP'],['e1','g1','wK'],['d7','d5','bP'],['c5','d6','wP'],['e8','c8','bK']
+]
+
 const illegal_king_test = [
     ['e8','bK'],['e1','wK'],['d1','wK'],['d8','bK']
 ]
 
-//manual solution insertions
-const solution_white = [['g1','f3','wN'],['g8','f6','bN'],['b1','c3','wN'],['b8','c6','bN']];
-
-const solution_black = [['g8','f6','bN'],['g1','f3','wN'],['b8','c6','bN'],['b1','c3','wN']];
 
 const Tests = () => {
+
     const creationBoard = createRef<any>();
     const exerciseBoard = createRef<any>();
     
@@ -36,51 +48,91 @@ const Tests = () => {
         creationBoard.current.onPieceDrop({sourceSquare: from, targetSquare: to, piece:{pieceType: type}});
     }
 
-    const loadExercise = (id: number) =>{
-        console.log(exerciseBoard.current.fetchExercise(id));
+    const loadExercise = async (id: number) =>{
+        await exerciseBoard.current.fetchExercise(id);
+    }
+
+    const playExercise = (from: any, to: any, type: any) => {
+        exerciseBoard.current.onPieceDrop({sourceSquare: from, targetSquare: to, piece:{pieceType: type}});
     }
 
     function insertTest(){
+        console.log('Insert Test started');
         //manually insert pieces
-        defaultPos.forEach(([square,piece]) => {insertPiece(square,piece)}); 
+        defaultPos.forEach(([square,piece]) => {
+            insertPiece(square,piece);
+            console.log('Piece Inserted');
+        }); 
         //sets the initial position of exercise
         creationBoard.current.savePos();
+        console.log('Initial Position set');
         //plays solution white starting turn
-        solution_white.forEach(([from,to,type]) => {movePiece(from,to,type)});
+        solution_white.forEach(([from,to,type]) => {
+            movePiece(from,to,type);
+            console.log('Piece played');
+        });
         //saves exercise in DB
-        creationBoard.current.savePos();  
+        creationBoard.current.savePos();
+        console.log('Exercise saved for white pieces');  
         //returns to the initial position to modify
         creationBoard.current.cancelPos();
+        console.log('Reverting to previous selected initial position');
         //sets the initial position of exercise
         creationBoard.current.savePos();
+        console.log('Initial Position set');
         //plays solution black starting turn
-        solution_black.forEach(([from,to,type]) => {movePiece(from,to,type)});
+        solution_black.forEach(([from,to,type]) => {
+            movePiece(from,to,type)
+            console.log('Piece played');
+        });
         //saves exercise to DB
         creationBoard.current.savePos();
+        console.log('Exercise saved for black pieces');
+        console.log('Insert test ended');
    
     }
 
-    function loadTest(){
-        //load first exercise
-        loadExercise(1);
-        //play exercise
-        
-        //load second exercise
-        loadExercise(2);
-        //play exercise
+    const loadTest = async() => {
+        console.log('Load Test started');
+        //Load white exercise
+        await loadExercise(1);
+        console.log('Exercise for white loaded');
+        play_white.forEach(([from,to,type]) => {
+            playExercise(from,to,type);
+            console.log('Move from solution made')
+            exerciseBoard.current.autoMove();
+        });
+        console.log('Exercise played to completion');
 
+        //Load black exercise
+        await loadExercise(2);
+        console.log('Exercise for black loaded');
+        play_black.forEach(([from,to,type]) => {
+            playExercise(from,to,type);
+            console.log('Move from solution made');
+            exerciseBoard.current.autoMove();
+        });
+        console.log('Exercise played to completion');
         //unexistent id
+
+        console.log('Load Test ended');
     }
 
     function chessRules(){
         //normal piece movement
 
         //special move cases (enpassant and castling)
+        castling_enpassant_Pos.forEach(([square,piece]) => {insertPiece(square,piece)});
+        creationBoard.current.savePos();
+        console.log('savePos after')
+        special_moves.forEach(([from,to,type]) => {movePiece(from,to,type)});
     }
 
     function runTests(){
         insertTest();
         loadTest();
+        creationBoard.current.clearBoard();
+        chessRules();
     }
 
     return(
