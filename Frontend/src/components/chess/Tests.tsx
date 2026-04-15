@@ -26,8 +26,15 @@ const special_moves = [
     ['e2','e4','wP'],['f4','e3','bP'],['e1','g1','wK'],['d7','d5','bP'],['c5','d6','wP'],['e8','c8','bK']
 ]
 
-const illegal_king_test = [
-    ['e8','bK'],['e1','wK'],['d1','wK'],['d8','bK']
+const piece_diagnosis = [
+    ['a8','bR'],['b8','bN'],['c8','bB'],['d8','bQ'],['e8','bK'],['a4','bP'],
+    ['a1','wR'],['b1','wN'],['c1','wB'],['d1','wQ'],['e1','wK'],['a5','wP']
+
+]
+
+const regular_moves = [
+    ['a4','a3','bP'],['a5','a6','wP'],['a8','a6','bR'],['c1','e3','wB'],['b8','c6','bN'],['e1','e2','wK'],
+    ['c8','b7','bB'],['b1','d2','wN'],['d8','d5','bQ'],['d1','a4','wQ'],['e8','d8','bK'],['a1','c1','wR']
 ]
 
 
@@ -56,8 +63,8 @@ const Tests = () => {
         exerciseBoard.current.onPieceDrop({sourceSquare: from, targetSquare: to, piece:{pieceType: type}});
     }
 
-    function insertTest(){
-        console.log('Insert Test started');
+    function insertTest(callback: any){
+        console.log('--------------Insert Test started--------------');
         //manually insert pieces
         defaultPos.forEach(([square,piece]) => {
             insertPiece(square,piece);
@@ -88,12 +95,13 @@ const Tests = () => {
         //saves exercise to DB
         creationBoard.current.savePos();
         console.log('Exercise saved for black pieces');
-        console.log('Insert test ended');
-   
+        console.log('--------------Insert test ended--------------');
+
+        callback();
     }
 
-    const loadTest = async() => {
-        console.log('Load Test started');
+    const loadTest = async(callback: any) => {
+        console.log('--------------Load Test started--------------');
         //Load white exercise
         await loadExercise(1);
         console.log('Exercise for white loaded');
@@ -115,24 +123,37 @@ const Tests = () => {
         console.log('Exercise played to completion');
         //unexistent id
 
-        console.log('Load Test ended');
+        console.log('--------------Load Test ended--------------');
+        callback();
     }
 
     function chessRules(){
+        creationBoard.current.clearBoard();
         //normal piece movement
-
-        //special move cases (enpassant and castling)
-        castling_enpassant_Pos.forEach(([square,piece]) => {insertPiece(square,piece)});
+        console.log('--------------Chess rules test started--------------')
+        piece_diagnosis.forEach(([square,piece]) => {insertPiece(square,piece)});
         creationBoard.current.savePos();
-        console.log('savePos after')
-        special_moves.forEach(([from,to,type]) => {movePiece(from,to,type)});
+        console.log('Pieces set');
+        regular_moves.forEach(([from,to,type]) => {
+            movePiece(from,to,type)
+            console.log('Moved piece', type);
+        });
+
+        creationBoard.current.clearBoard();
+        //special move cases (enpassant and castling)
+        console.log('--------------Special moves test started--------------');
+        castling_enpassant_Pos.forEach(([square,piece]) => {insertPiece(square,piece)});
+        console.log('Pieces set');
+        creationBoard.current.savePos();
+        special_moves.forEach(([from,to,type]) => {
+            movePiece(from,to,type)
+            console.log('Moved piece', type);
+        });
+        console.log('--------------Chess rule test ended--------------')
     }
 
     function runTests(){
-        insertTest();
-        loadTest();
-        creationBoard.current.clearBoard();
-        chessRules();
+        insertTest(() => {loadTest( () => {chessRules()}) });
     }
 
     return(
