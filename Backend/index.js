@@ -5,6 +5,7 @@ const { Chess } = require("chess.js");
 const pgp = require("pg-promise")();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { performance } = require('perf_hooks');
 
 const JWT_SECRET = "roadtogm_dev_secret";
 
@@ -98,7 +99,7 @@ app.post("/auth/signup", async (req, res) => {
         .status(400)
         .json({ error: "username, email, and password are required" });
     }
-
+    const start = performance.now();
     const existing = await db.oneOrNone(
       "SELECT * FROM users WHERE email = $1 OR username = $2",
       [email, username]
@@ -118,7 +119,7 @@ app.post("/auth/signup", async (req, res) => {
       `,
       [username, email, password_hash, role || "student"]
     );
-
+    console.log('/auth/signup POST api call finished in',performance.now() - start,'ms');
     res.json(created);
   } catch (err) {
     console.error("Error signing up:", err);
@@ -129,7 +130,7 @@ app.post("/auth/signup", async (req, res) => {
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-
+    const start = performance.now();
     const user = await db.oneOrNone(
       "SELECT * FROM users WHERE email = $1",
       [email]
@@ -155,7 +156,7 @@ app.post("/auth/login", async (req, res) => {
       JWT_SECRET,
       { expiresIn: "7d" }
     );
-
+    console.log('/auth/login POST api call finished in',performance.now() - start,'ms');
     res.json({
       token,
       user: {
@@ -173,6 +174,7 @@ app.post("/auth/login", async (req, res) => {
 
 app.get("/auth/me", authenticateToken, async (req, res) => {
   try {
+    const start = performance.now();
     const user = await db.oneOrNone(
       "SELECT user_id, username, email, role FROM users WHERE user_id = $1",
       [req.user.user_id]
@@ -181,7 +183,7 @@ app.get("/auth/me", authenticateToken, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-
+    console.log('/auth/me GET api call finished in',performance.now() - start,'ms');
     res.json(user);
   } catch (err) {
     console.error("Error in /auth/me:", err);
@@ -225,8 +227,10 @@ app.post("/test", (req, res) => {
 
 app.get("/build/:id", async (req, res) => {
   try {
+    const start = performance.now();
     const id = req.params.id;
     const exData = await buildExercise(id);
+    console.log('/build api call finished in',performance.now(),'ms'); 
     res.json(exData);
   } catch (err) {
     console.error("Error in /build:", err);
@@ -236,8 +240,10 @@ app.get("/build/:id", async (req, res) => {
 
 app.post("/create", async (req, res) => {
   try {
+    const start = performance.now();
     const exData = req.body;
     const id = await insertExercise(exData);
+    console.log('/create api call finished in',performance.now() - start,'ms');
     res.json({ success: true, id });
   } catch (err) {
     console.error("Error in /create:", err);
@@ -249,9 +255,11 @@ app.post("/create", async (req, res) => {
 
 app.get("/modules", async (req, res) => {
   try {
+    const start = performance.now();
     const data = await db.any(
       "SELECT * FROM modules WHERE is_published = TRUE OR is_published IS NULL ORDER BY module_id ASC"
     );
+    console.log('modules GET api call finished in',performance.now() - start,'ms')
     res.json(data);
   } catch (err) {
     console.error("Error fetching modules:", err);
@@ -262,6 +270,7 @@ app.get("/modules", async (req, res) => {
 app.get("/modules/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const start = performance.now();
     const data = await db.oneOrNone(
       "SELECT * FROM modules WHERE module_id = $1",
       [id]
@@ -270,7 +279,7 @@ app.get("/modules/:id", async (req, res) => {
     if (!data) {
       return res.status(404).json({ error: "Module not found" });
     }
-
+    console.log('modules GET api call finished in',performance.now() - start,'ms')
     res.json(data);
   } catch (err) {
     console.error("Error fetching module:", err);
@@ -280,11 +289,12 @@ app.get("/modules/:id", async (req, res) => {
 
 app.get("/my/modules", authenticateToken, async (req, res) => {
   try {
+    const start = performance.now();
     const data = await db.any(
       "SELECT * FROM modules WHERE user_id = $1 ORDER BY module_id ASC",
       [req.user.user_id]
     );
-
+    console.log('/my/modules GET api call finished in',performance.now() - start,'ms')
     res.json(data);
   } catch (err) {
     console.error("Error fetching my modules:", err);
@@ -295,7 +305,7 @@ app.get("/my/modules", authenticateToken, async (req, res) => {
 app.post("/modules", authenticateToken, async (req, res) => {
   try {
     const { title, description, category, difficulty } = req.body;
-
+    const start = performance.now();
     const created = await db.one(
       `
       INSERT INTO modules (title, description, category, difficulty, user_id, is_published)
@@ -304,7 +314,7 @@ app.post("/modules", authenticateToken, async (req, res) => {
       `,
       [title, description, category, difficulty || "Beginner", req.user.user_id]
     );
-
+    console.log('modules POST api call finished in',performance.now() - start,'ms')
     res.json(created);
   } catch (err) {
     console.error("Error creating module:", err);
@@ -316,7 +326,7 @@ app.put("/modules/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, category, difficulty } = req.body;
-
+    const start = performance.now();
     const existing = await getOwnedModuleOrReject(
       id,
       req.user.user_id,
@@ -342,7 +352,7 @@ app.put("/modules/:id", authenticateToken, async (req, res) => {
         id,
       ]
     );
-
+    console.log('modules PUT api call finished in',performance.now() - start,'ms')
     res.json(updated);
   } catch (err) {
     console.error("Error updating module:", err);
@@ -354,7 +364,7 @@ app.patch("/modules/:id/publish", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { is_published } = req.body;
-
+    const start = performance.now();
     const existing = await getOwnedModuleOrReject(
       id,
       req.user.user_id,
@@ -371,7 +381,7 @@ app.patch("/modules/:id/publish", authenticateToken, async (req, res) => {
       `,
       [Boolean(is_published), id]
     );
-
+    console.log('modules/publish PATCH api call finished in',performance.now() - start,'ms')
     res.json(updated);
   } catch (err) {
     console.error("Error publishing module:", err);
@@ -382,7 +392,7 @@ app.patch("/modules/:id/publish", authenticateToken, async (req, res) => {
 app.delete("/modules/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-
+    const start = performance.now();
     const existing = await getOwnedModuleOrReject(
       id,
       req.user.user_id,
@@ -395,7 +405,7 @@ app.delete("/modules/:id", authenticateToken, async (req, res) => {
 
     // Then delete the module
     await db.none("DELETE FROM modules WHERE module_id = $1", [id]);
-
+    console.log('modules DELETE api call finished in',performance.now() - start,'ms')
     res.json({ success: true, message: "Module and its exercises deleted" });
   } catch (err) {
     console.error("Error deleting module:", err);
@@ -408,6 +418,7 @@ app.delete("/modules/:id", authenticateToken, async (req, res) => {
 app.get("/exercises/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const start = performance.now();
     const data = await db.oneOrNone(
       `
       SELECT exercise_id, module_id, title, description, difficulty, ipos, solution, color
@@ -429,7 +440,7 @@ app.get("/exercises/:id", async (req, res) => {
         parsedSolution = [];
       }
     }
-
+    console.log('exercise GET api call finished in',performance.now() - start,'ms')
     res.json({
       exercise_id: data.exercise_id,
       module_id: data.module_id,
@@ -458,6 +469,7 @@ app.post("/exercises", authenticateToken, async (req, res) => {
       color,
     } = req.body;
 
+    const start = performance.now();
     const moduleRecord = await db.oneOrNone(
       "SELECT * FROM modules WHERE module_id = $1",
       [module_id]
@@ -487,7 +499,7 @@ app.post("/exercises", authenticateToken, async (req, res) => {
         color,
       ]
     );
-
+    console.log('/exercises POST api call finished in',performance.now() - start,'ms');
     res.json(created);
   } catch (err) {
     console.error("Error creating exercise:", err);
@@ -508,6 +520,7 @@ app.put("/exercises/:id", authenticateToken, async (req, res) => {
       color,
     } = req.body;
 
+    const start = performance.now();
     const existing = await db.oneOrNone(
       "SELECT * FROM exercise WHERE exercise_id = $1",
       [id]
@@ -554,7 +567,7 @@ app.put("/exercises/:id", authenticateToken, async (req, res) => {
         id,
       ]
     );
-
+    console.log('/exercises PUT api call finished in',performance.now() - start,'ms');
     res.json(updated);
   } catch (err) {
     console.error("Error updating exercise:", err);
@@ -565,7 +578,7 @@ app.put("/exercises/:id", authenticateToken, async (req, res) => {
 app.delete("/exercises/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-
+    const start = performance.now();
     const existing = await db.oneOrNone(
       "SELECT * FROM exercise WHERE exercise_id = $1",
       [id]
@@ -585,7 +598,7 @@ app.delete("/exercises/:id", authenticateToken, async (req, res) => {
     }
 
     await db.none("DELETE FROM exercise WHERE exercise_id = $1", [id]);
-
+    console.log('/exercises DELETE api call finished in',performance.now() - start,'ms');
     res.json({ success: true, message: "Exercise deleted" });
   } catch (err) {
     console.error("Error deleting exercise:", err);

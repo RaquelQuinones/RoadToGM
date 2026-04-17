@@ -41,8 +41,8 @@ export default function CreateContentPage() {
     description: "",
     difficulty: "Beginner",
     ipos: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    solution: ['e2','e4'],
-    color: "w",
+    solution: '{e4,e5}',
+    color: false,
   });
 
   useEffect(() => {
@@ -209,15 +209,14 @@ export default function CreateContentPage() {
       const created = JSON.parse(rawText);
 
       setMessage(`Exercise "${created.title}" created successfully.`);
-
       setExerciseForm({
         module_id: "",
         title: "",
         description: "",
         difficulty: "Beginner",
         ipos: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        solution: '["e2e4"]',
-        color: "w",
+        solution: '{}',
+        color: false,
       });
     } catch (err) {
       console.error("handleCreateExercise error:", err);
@@ -595,7 +594,7 @@ export default function CreateContentPage() {
                             solution: e.target.value,
                           })
                         }
-                        placeholder='Example: ["e2e4"]'
+                        placeholder='Example: {e4,e5}'
                         required
                         style={{
                           width: "100%",
@@ -622,8 +621,8 @@ export default function CreateContentPage() {
                           marginTop: "8px",
                         }}
                       >
-                        <option value="w">White</option>
-                        <option value="b">Black</option>
+                        <option value= {false} >White</option>
+                        <option value= {true} >Black</option>
                       </select>
                     </label>
 
