@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createRef } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import CBoard from "../components/chess/creationBoard";
 import UpperBar, {
@@ -41,9 +42,12 @@ export default function CreateContentPage() {
     description: "",
     difficulty: "Beginner",
     ipos: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    solution: '{e4,e5}',
+    solution: '{}',
     color: false,
   });
+
+  const creationBoard = createRef();
+  const [initialPos,setInitial] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -184,7 +188,6 @@ export default function CreateContentPage() {
       setError("You must be logged in to create an exercise.");
       return;
     }
-
     try {
       const response = await fetch("http://localhost:3000/exercises", {
         method: "POST",
@@ -461,13 +464,40 @@ export default function CreateContentPage() {
                     }}
                   >
                     <div style={{
-                      display: 'inline-block',  
-                      minWidth: '100%',         
+                      display: 'inline-block',   
+                      width: '50%',         
                       height: 'auto',
-                      overflow: 'visible'
+                      overflow: 'visible',
+                      margin: "0 auto"
                     }}>
-                    <CBoard />
+                    <CBoard ref = {creationBoard} />
                     </div>
+
+                    {<button type = "button" onClick={()=>{
+                      setInitial(true);
+                      const result = creationBoard.current.savePos(); 
+                      if(result){
+                        setExerciseForm({...exerciseForm, ipos: result.ipos, solution: result.solution, color: result.color});
+                      }
+                    }} style={{
+                        background: colors.buttonPrimary,
+                        color: colors.white,
+                        border: "none",
+                        padding: "14px 20px",
+                        borderRadius: "12px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}> Save </button>}
+                    {initialPos && <button type = "button" onClick = {() => {setInitial(false); creationBoard.current.cancelPos();}} style={{
+                        background: "#e53e3e",
+                        color: colors.white,
+                        border: "none",
+                        padding: "14px 20px",
+                        borderRadius: "12px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}> Cancel </button>}
+            
 
                     <label>
                       Module
@@ -558,71 +588,6 @@ export default function CreateContentPage() {
                         <option value="Intermediate">Intermediate</option>
                         <option value="Advanced">Advanced</option>
                         <option value="Hard">Hard</option>
-                      </select>
-                    </label>
-
-                    <label>
-                      Initial Position (FEN)
-                      <br />
-                      <input
-                        type="text"
-                        value={exerciseForm.ipos}
-                        onChange={(e) =>
-                          setExerciseForm({
-                            ...exerciseForm,
-                            ipos: e.target.value,
-                          })
-                        }
-                        required
-                        style={{
-                          width: "100%",
-                          padding: "12px",
-                          marginTop: "8px",
-                        }}
-                      />
-                    </label>
-
-                    <label>
-                      Solution
-                      <br />
-                      <input
-                        type="text"
-                        value={exerciseForm.solution}
-                        onChange={(e) =>
-                          setExerciseForm({
-                            ...exerciseForm,
-                            solution: e.target.value,
-                          })
-                        }
-                        placeholder='Example: {e4,e5}'
-                        required
-                        style={{
-                          width: "100%",
-                          padding: "12px",
-                          marginTop: "8px",
-                        }}
-                      />
-                    </label>
-
-                    <label>
-                      Side to Move
-                      <br />
-                      <select
-                        value={exerciseForm.color}
-                        onChange={(e) =>
-                          setExerciseForm({
-                            ...exerciseForm,
-                            color: e.target.value,
-                          })
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "12px",
-                          marginTop: "8px",
-                        }}
-                      >
-                        <option value= {false} >White</option>
-                        <option value= {true} >Black</option>
                       </select>
                     </label>
 

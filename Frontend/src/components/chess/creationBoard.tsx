@@ -8,6 +8,7 @@ const CBoard = ({ ref }:{ref?: any}) => {
     //Keeps track if kings have been placed
     var [wKing, setW] = useState(true);
     var [bKing, setB] = useState(true);
+    var [trigger, setOff] = useState({});
     var initialPos = useRef(true);
     const setInitial = (set: boolean) => {initialPos.current = set;}
 
@@ -57,12 +58,13 @@ const CBoard = ({ ref }:{ref?: any}) => {
             if(turnColor){exSolution = exSolution.slice(1);}
 
             const exData = {ipos: refInitial.current, solution: exSolution, color: turnColor}
-    
-            saveExercise(exData);
+            console.log(exSolution);
+            return exData;
+            //saveExercise(exData);
         }
-        
         setInitial(false);
-        return true;
+        setOff({});
+        return false;
     }
 
     //Player wishes to change something about initial position or change plays made beforehand
@@ -78,8 +80,10 @@ const CBoard = ({ ref }:{ref?: any}) => {
         }
         setPos(refInitial.current);
         setInitial(true);
+        setOff({});
         return true;
     }
+
     const clearBoard = ()=> {
         currChess.clear();
         setPos(currChess.fen());
@@ -170,8 +174,9 @@ const CBoard = ({ ref }:{ref?: any}) => {
         savePos,
         cancelPos,
         clearBoard,
-        getCurrBoard: () => currChess
-    }), [onPieceDrop, savePos, cancelPos, clearBoard]);
+        getCurrBoard: () => currChess,
+        getInitialPos: () => initialPos,
+    }), [onPieceDrop, savePos, cancelPos, clearBoard, setInitial]);
 
     var boardOptions = {position: boardPos, onPieceDrop};
     return(
@@ -210,9 +215,6 @@ const CBoard = ({ ref }:{ref?: any}) => {
          </div> : null}
 
         </ChessboardProvider>
-        <button onClick={savePos}> Save </button>
-        <button onClick={cancelPos}> Cancel </button>
-        <button onClick={showFen}> show fen</button>
         </>
     )
 }
