@@ -15,12 +15,23 @@ const ExBoard = ({ ref }: {ref?: any}) =>{
     type exercise = { ipos: string, solution: string[], color: boolean };
     
     const autoMove = () => {
-        currBoard.move(currExercise.current.solution[turnCount.current]);
+        const nextMove = currExercise.current.solution?.[turnCount.current];
+    
+        if (!nextMove) {
+            return;
+        }
+    
+        currBoard.move(nextMove);
         turnCount.current = turnCount.current + 1;
         setPos(currBoard.fen());
     }
-
-    if(turnCount.current % 2 != 0){console.log(currExercise.current.solution[turnCount.current])
+    
+    if (
+        turnCount.current % 2 != 0 &&
+        currExercise.current.solution &&
+        turnCount.current < currExercise.current.solution.length
+    ) {
+        console.log(currExercise.current.solution[turnCount.current]);
         autoMove();
     }
 
@@ -59,7 +70,7 @@ const ExBoard = ({ ref }: {ref?: any}) =>{
         currBoard.reset();
     }
     const buttonFetch = () => {
-        fetchExercise(1);
+        fetchExercise(5);
     }
     useImperativeHandle(ref,()=> ({
             onPieceDrop,

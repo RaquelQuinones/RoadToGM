@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Chess } from "chess.js";
 import CBoard from "../components/chess/creationBoard";
 import UpperBar, {
   UpperBarLeft,
   UpperBarRight,
   UpperBarLogo,
   UpperBarTitle,
-  UpperBarButton,
   DropdownBar,
 } from "../components/UpperBar";
 import Logo from "../images/Logo.png";
@@ -41,8 +41,8 @@ export default function CreateContentPage() {
     description: "",
     difficulty: "Beginner",
     ipos: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    solution: '{e4,e5}',
-    color: false,
+    solution: "e2,e4",
+    color: "w",
   });
 
   useEffect(() => {
@@ -54,6 +54,54 @@ export default function CreateContentPage() {
       loadMyModules();
     }
   }, [currentUser]);
+
+  function formatColorForDb(color) {
+    return color === "b";
+  }
+
+  function convertSolutionToSan(solutionInput, fen, color) {
+    const chess = new Chess(fen);
+
+    if (color === "b") {
+      chess.setTurn("b");
+    } else {
+      chess.setTurn("w");
+    }
+
+    const raw = String(solutionInput).trim();
+
+    const parts = raw
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+
+    if (parts.length === 0) {
+      throw new Error("Solution is empty.");
+    }
+
+    if (parts.length % 2 !== 0) {
+      throw new Error(
+        "Solution must be entered as from,to pairs. Example: e2,e4,e7,e5"
+      );
+    }
+
+    const sanMoves = [];
+
+    for (let i = 0; i < parts.length; i += 2) {
+      const from = parts[i];
+      const to = parts[i + 1];
+
+      const move = chess.move({ from, to, promotion: "q" });
+
+      if (!move) {
+        throw new Error(`Invalid move in solution: ${from} to ${to}`);
+      }
+
+      sanMoves.push(move.san);
+    }
+
+    return `{${sanMoves.join(",")}}`;
+  }
 
   async function checkAuth() {
     const token = localStorage.getItem("token");
@@ -186,6 +234,12 @@ export default function CreateContentPage() {
     }
 
     try {
+      const formattedSolution = convertSolutionToSan(
+        exerciseForm.solution,
+        exerciseForm.ipos,
+        exerciseForm.color
+      );
+
       const response = await fetch("http://localhost:3000/exercises", {
         method: "POST",
         headers: {
@@ -195,6 +249,8 @@ export default function CreateContentPage() {
         body: JSON.stringify({
           ...exerciseForm,
           module_id: Number(exerciseForm.module_id),
+          solution: formattedSolution,
+          color: formatColorForDb(exerciseForm.color),
         }),
       });
 
@@ -215,8 +271,8 @@ export default function CreateContentPage() {
         description: "",
         difficulty: "Beginner",
         ipos: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        solution: '{}',
-        color: false,
+        solution: "e2,e4",
+        color: "w",
       });
     } catch (err) {
       console.error("handleCreateExercise error:", err);
@@ -456,17 +512,19 @@ export default function CreateContentPage() {
                     onSubmit={handleCreateExercise}
                     style={{
                       display: "flex",
-                      flexDirection:"column",
+                      flexDirection: "column",
                       gap: "18px",
                     }}
                   >
-                    <div style={{
-                      display: 'inline-block',  
-                      minWidth: '100%',         
-                      height: 'auto',
-                      overflow: 'visible'
-                    }}>
-                    <CBoard />
+                    <div
+                      style={{
+                        display: "inline-block",
+                        minWidth: "100%",
+                        height: "auto",
+                        overflow: "visible",
+                      }}
+                    >
+                      <CBoard />
                     </div>
 
                     <label>
@@ -594,7 +652,7 @@ export default function CreateContentPage() {
                             solution: e.target.value,
                           })
                         }
-                        placeholder='Example: {e4,e5}'
+                        placeholder="Example: e2,e4,e7,e5,g1,f3"
                         required
                         style={{
                           width: "100%",
