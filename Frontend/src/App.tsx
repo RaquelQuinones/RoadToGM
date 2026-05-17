@@ -12,6 +12,10 @@ import SignupPage from "./pages/SignupPage";
 import EditModulePage from "./pages/EditModulePage";
 import MyModulesPage from "./pages/MyModulesPage";
 
+import ClassesPage from "./pages/ClassesPage";
+import MyClassesPage from "./pages/MyClassesPage";
+import SharedModulesPage from "./pages/SharedModulesPage";
+
 export default function App() {
   return (
     <Routes>
@@ -25,6 +29,9 @@ export default function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/modules/:id/edit" element={<EditModulePage />} />
       <Route path="/my-modules" element={<MyModulesPage />} />
+      <Route path="/classes" element={<ClassesPage />} />
+      <Route path="/my-classes" element={<MyClassesPage />} />
+      <Route path="/shared-modules" element={<SharedModulesPage />} />
     </Routes>
   );
 }

@@ -37,13 +37,18 @@ export default function SignupPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          username: form.username.trim(),
+          email: form.email.trim(),
+          password: form.password,
+          role: form.role,
+        }),
       });
 
-      const text = await response.text();
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(text || "Signup failed");
+        throw new Error(data.error || "Signup failed");
       }
 
       setMessage("Account created successfully. You can now log in.");
@@ -141,7 +146,8 @@ export default function SignupPage() {
               lineHeight: 1.6,
             }}
           >
-            Create an account to build and manage your own chess modules.
+            Create an account to build, manage, and access chess modules based
+            on your role.
           </p>
 
           <form
@@ -219,6 +225,7 @@ export default function SignupPage() {
                 onChange={(e) =>
                   setForm({ ...form, role: e.target.value })
                 }
+                required
                 style={{
                   width: "100%",
                   padding: "12px",
@@ -232,12 +239,40 @@ export default function SignupPage() {
               </select>
             </label>
 
+            <p
+              style={{
+                margin: "-6px 0 0",
+                color: colors.text,
+                fontSize: "0.9rem",
+                lineHeight: 1.5,
+              }}
+            >
+              Students can join classes and access shared modules. Teachers can
+              create classes and share modules with students.
+            </p>
+
             {error && (
-              <p style={{ color: "red", margin: 0 }}>{error}</p>
+              <p
+                style={{
+                  color: "red",
+                  margin: 0,
+                  fontWeight: 600,
+                }}
+              >
+                {error}
+              </p>
             )}
 
             {message && (
-              <p style={{ color: "#7CFC98", margin: 0 }}>{message}</p>
+              <p
+                style={{
+                  color: "#7CFC98",
+                  margin: 0,
+                  fontWeight: 600,
+                }}
+              >
+                {message}
+              </p>
             )}
 
             <button
@@ -250,7 +285,7 @@ export default function SignupPage() {
                 padding: "14px 20px",
                 borderRadius: "12px",
                 fontWeight: 700,
-                cursor: "pointer",
+                cursor: loading ? "not-allowed" : "pointer",
                 opacity: loading ? 0.7 : 1,
               }}
             >

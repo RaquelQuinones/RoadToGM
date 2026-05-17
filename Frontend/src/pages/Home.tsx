@@ -156,7 +156,7 @@ export default function Home() {
         }}
       >
         <HeroSection
-          title="Train chess with structure, not randomness."
+          title="Your Road to GM starts here!"
           subtitle="Road To GM helps you learn through organized modules, interactive exercises, and personalized training routines you can build and revisit anytime."
           buttonText={currentUser ? "Create Content" : "Get Started"}
           buttonHref={currentUser ? "/create" : "/signup"}

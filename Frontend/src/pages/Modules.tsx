@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import UpperBar, {
   UpperBarLeft,
   UpperBarRight,
   UpperBarLogo,
   UpperBarTitle,
-  UpperBarButton,
   DropdownBar,
 } from "../components/UpperBar";
 import SearchBar from "../components/SearchBar";
@@ -25,44 +24,62 @@ export type Module = {
 };
 
 export default function Modules() {
+  const navigate = useNavigate();
+
   const [search, setSearch] = useState("");
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const savedUser = localStorage.getItem("user");
+  const user = savedUser ? JSON.parse(savedUser) : null;
+  const isTeacher = user?.role === "teacher";
+
   useEffect(() => {
-    async function loadModules() {
-      try {
-        const response = await fetch("http://localhost:3000/modules");
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch modules");
-        }
-
-        const data = await response.json();
-        console.log("Modules from backend:", data);
-        setModules(data);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Failed to load modules");
-      } finally {
-        setLoading(false);
-      }
-    }
-
     loadModules();
   }, []);
+
+  async function loadModules() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch("http://localhost:3000/modules");
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch modules");
+      }
+
+      console.log("Modules from backend:", data);
+      setModules(data);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to load modules");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const filteredModules = useMemo(() => {
     const query = search.toLowerCase().trim();
 
     if (!query) return modules;
 
-    return modules.filter((module) =>
-      module.title.toLowerCase().includes(query) ||
-      module.category.toLowerCase().includes(query) ||
-      module.description.toLowerCase().includes(query)
-    );
+    return modules.filter((module) => {
+      const title = module.title?.toLowerCase() || "";
+      const category = module.category?.toLowerCase() || "";
+      const description = module.description?.toLowerCase() || "";
+      const difficulty = module.difficulty?.toLowerCase() || "";
+
+      return (
+        title.includes(query) ||
+        category.includes(query) ||
+        description.includes(query) ||
+        difficulty.includes(query)
+      );
+    });
   }, [search, modules]);
 
   return (
@@ -75,7 +92,7 @@ export default function Modules() {
     >
       <UpperBar>
         <UpperBarLeft>
-          <UpperBarLogo onClick={() => console.log("logo click")}>
+          <UpperBarLogo onClick={() => navigate("/")}>
             <img
               src={Logo}
               alt="Road To GM Logo"
@@ -99,6 +116,9 @@ export default function Modules() {
               { label: "Explore", href: "/modules" },
               { label: "Create", href: "/create" },
               { label: "My Modules", href: "/my-modules" },
+              { label: "Shared Modules", href: "/shared-modules" },
+              { label: "Classes", href: "/classes" },
+              { label: "My Classes", href: "/my-classes" },
             ]}
             triggerStyle={{ background: colors.buttonPrimary }}
             itemProps={{ target: "_self" }}
@@ -119,28 +139,94 @@ export default function Modules() {
             display: "flex",
             flexDirection: "column",
             gap: "24px",
-            marginBottom: "40px",
+            marginBottom: "32px",
           }}
         >
-          <h1
+          <div
             style={{
-              margin: 0,
-              color: colors.white,
-              fontSize: "42px",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "16px",
+              alignItems: "flex-start",
+              flexWrap: "wrap",
             }}
           >
-            Modules
-          </h1>
+            <div>
+              <h1
+                style={{
+                  margin: 0,
+                  color: colors.white,
+                  fontSize: "42px",
+                }}
+              >
+                Explore Modules
+              </h1>
 
-          <p
-            style={{
-              margin: 0,
-              color: colors.text,
-              fontSize: "18px",
-            }}
-          >
-            Search through your chess learning modules.
-          </p>
+              <p
+                style={{
+                  margin: "10px 0 0",
+                  color: colors.text,
+                  fontSize: "18px",
+                  lineHeight: 1.6,
+                }}
+              >
+                Search through published chess learning modules available to all
+                users.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <Link
+                to="/shared-modules"
+                style={{
+                  background: colors.surfaceLight || "#3A3A3A",
+                  color: colors.white,
+                  padding: "12px 16px",
+                  borderRadius: "12px",
+                  textDecoration: "none",
+                  fontWeight: 700,
+                }}
+              >
+                Shared Modules
+              </Link>
+
+              <Link
+                to="/my-modules"
+                style={{
+                  background: colors.surfaceLight || "#3A3A3A",
+                  color: colors.white,
+                  padding: "12px 16px",
+                  borderRadius: "12px",
+                  textDecoration: "none",
+                  fontWeight: 700,
+                }}
+              >
+                My Modules
+              </Link>
+
+              {isTeacher && (
+                <Link
+                  to="/classes"
+                  style={{
+                    background: colors.buttonPrimary,
+                    color: colors.white,
+                    padding: "12px 16px",
+                    borderRadius: "12px",
+                    textDecoration: "none",
+                    fontWeight: 700,
+                  }}
+                >
+                  Classes
+                </Link>
+              )}
+            </div>
+          </div>
 
           <SearchBar
             value={search}
@@ -196,14 +282,38 @@ export default function Modules() {
                     gap: "10px",
                   }}
                 >
-                  <span
+                  <div
                     style={{
-                      fontSize: "14px",
-                      color: colors.text,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      alignItems: "center",
                     }}
                   >
-                    {module.category}
-                  </span>
+                    <span
+                      style={{
+                        fontSize: "14px",
+                        color: colors.text,
+                      }}
+                    >
+                      {module.category}
+                    </span>
+
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: module.is_default ? "#7CFC98" : colors.text,
+                        background: module.is_default
+                          ? "rgba(124, 252, 152, 0.15)"
+                          : "rgba(255,255,255,0.08)",
+                        padding: "6px 10px",
+                        borderRadius: "999px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {module.is_default ? "Default" : "Published"}
+                    </span>
+                  </div>
 
                   <span
                     style={{
@@ -218,9 +328,20 @@ export default function Modules() {
                     style={{
                       fontSize: "15px",
                       color: colors.text,
+                      lineHeight: 1.5,
                     }}
                   >
                     {module.description}
+                  </span>
+
+                  <span
+                    style={{
+                      marginTop: "auto",
+                      fontSize: "14px",
+                      color: colors.text,
+                    }}
+                  >
+                    Difficulty: {module.difficulty || "Beginner"}
                   </span>
                 </Link>
               ))}

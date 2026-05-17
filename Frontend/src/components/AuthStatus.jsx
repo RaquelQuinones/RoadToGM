@@ -25,6 +25,7 @@ export default function AuthStatus() {
 
   function loadUser() {
     const savedUser = localStorage.getItem("user");
+
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
@@ -61,6 +62,9 @@ export default function AuthStatus() {
     );
   }
 
+  const isTeacher = user.role === "teacher";
+  const isStudent = user.role === "student";
+
   return (
     <div
       style={{
@@ -70,6 +74,26 @@ export default function AuthStatus() {
         flexWrap: "wrap",
       }}
     >
+      <UpperBarButton onClick={() => navigate("/my-modules")}>
+        My Modules
+      </UpperBarButton>
+
+      {isTeacher && (
+        <UpperBarButton onClick={() => navigate("/classes")}>
+          Classes
+        </UpperBarButton>
+      )}
+
+      {isStudent && (
+        <UpperBarButton onClick={() => navigate("/my-classes")}>
+          My Classes
+        </UpperBarButton>
+      )}
+
+      <UpperBarButton onClick={() => navigate("/shared-modules")}>
+        Shared
+      </UpperBarButton>
+
       <div
         style={{
           display: "flex",
