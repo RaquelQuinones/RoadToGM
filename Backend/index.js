@@ -989,7 +989,7 @@ app.post("/exercises", authenticateToken, async (req, res) => {
         description,
         difficulty || "Beginner",
         ipos,
-        typeof solution === "string" ? solution : JSON.stringify(solution),
+        solution,
         color,
       ]
     );
