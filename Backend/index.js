@@ -5,7 +5,7 @@ const { Chess } = require("chess.js");
 const pgp = require("pg-promise")();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { performance } = require('perf_hooks');
+const { performance } = require("perf_hooks");
 
 const JWT_SECRET = "roadtogm_dev_secret";
 
@@ -21,7 +21,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use("/node_modules", express.static(path.join(__dirname, "node_modules")));
+
+// Security: do not expose internal dependency folders publicly.
+// app.use("/node_modules", express.static(path.join(__dirname, "node_modules")));
 
 const PORT = 3000;
 
@@ -89,7 +91,25 @@ function requireRole(...allowedRoles) {
   };
 }
 
+// Security helper: validates route/body IDs before they reach database queries.
+// This rejects invalid values like "undefined", "../", "abc", or "1.5".
+function validateNumericId(id, label = "id") {
+  const value = String(id ?? "").trim();
+
+  if (!/^\d+$/.test(value)) {
+    return `${label} must be a valid number`;
+  }
+
+  return null;
+}
+
 async function getOwnedModuleOrReject(moduleId, userId, res) {
+  const idError = validateNumericId(moduleId, "module id");
+  if (idError) {
+    res.status(400).json({ error: idError });
+    return null;
+  }
+
   const existing = await db.oneOrNone(
     "SELECT * FROM modules WHERE module_id = $1",
     [moduleId]
@@ -115,6 +135,11 @@ async function getOwnedModuleOrReject(moduleId, userId, res) {
 // 3. The module was shared directly with the user
 // 4. The module was shared with a class the user belongs to
 async function canUserAccessModule(moduleId, userId) {
+  const idError = validateNumericId(moduleId, "module id");
+  if (idError) {
+    return { allowed: false, moduleRecord: null, error: idError };
+  }
+
   const moduleRecord = await db.oneOrNone(
     "SELECT * FROM modules WHERE module_id = $1",
     [moduleId]
@@ -219,7 +244,13 @@ app.post("/auth/signup", async (req, res) => {
       `,
       [username, email, password_hash, safeRole]
     );
-    console.log('/auth/signup POST api call finished in',performance.now() - start,'ms');
+
+    console.log(
+      "/auth/signup POST api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json(created);
   } catch (err) {
     console.error("Error signing up:", err);
@@ -257,7 +288,13 @@ app.post("/auth/login", async (req, res) => {
       JWT_SECRET,
       { expiresIn: "7d" }
     );
-    console.log('/auth/login POST api call finished in',performance.now() - start,'ms');
+
+    console.log(
+      "/auth/login POST api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json({
       token,
       user: {
@@ -276,6 +313,7 @@ app.post("/auth/login", async (req, res) => {
 app.get("/auth/me", authenticateToken, async (req, res) => {
   try {
     const start = performance.now();
+
     const user = await db.oneOrNone(
       "SELECT user_id, username, email, role FROM users WHERE user_id = $1",
       [req.user.user_id]
@@ -284,7 +322,13 @@ app.get("/auth/me", authenticateToken, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    console.log('/auth/me GET api call finished in',performance.now() - start,'ms');
+
+    console.log(
+      "/auth/me GET api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json(user);
   } catch (err) {
     console.error("Error in /auth/me:", err);
@@ -330,8 +374,16 @@ app.get("/build/:id", async (req, res) => {
   try {
     const start = performance.now();
     const id = req.params.id;
+
+    const idError = validateNumericId(id, "exercise id");
+    if (idError) {
+      return res.status(400).json({ error: idError });
+    }
+
     const exData = await buildExercise(id);
-    console.log('/build api call finished in',performance.now(),'ms'); 
+
+    console.log("/build api call finished in", performance.now(), "ms");
+
     res.json(exData);
   } catch (err) {
     console.error("Error in /build:", err);
@@ -344,7 +396,13 @@ app.post("/create", async (req, res) => {
     const start = performance.now();
     const exData = req.body;
     const id = await insertExercise(exData);
-    console.log('/create api call finished in',performance.now() - start,'ms');
+
+    console.log(
+      "/create api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json({ success: true, id });
   } catch (err) {
     console.error("Error in /create:", err);
@@ -357,6 +415,7 @@ app.post("/create", async (req, res) => {
 app.get("/modules", async (req, res) => {
   try {
     const start = performance.now();
+
     const data = await db.any(
       `
       SELECT *
@@ -379,6 +438,12 @@ app.get("/modules", async (req, res) => {
 app.get("/modules/:id", optionalAuthenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const idError = validateNumericId(id, "module id");
+    if (idError) {
+      return res.status(400).json({ error: idError });
+    }
+
     const userId = req.user ? req.user.user_id : null;
 
     const access = await canUserAccessModule(id, userId);
@@ -403,11 +468,18 @@ app.get("/modules/:id", optionalAuthenticateToken, async (req, res) => {
 app.get("/my/modules", authenticateToken, async (req, res) => {
   try {
     const start = performance.now();
+
     const data = await db.any(
       "SELECT * FROM modules WHERE user_id = $1 ORDER BY module_id ASC",
       [req.user.user_id]
     );
-    console.log('/my/modules GET api call finished in',performance.now() - start,'ms')
+
+    console.log(
+      "/my/modules GET api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json(data);
   } catch (err) {
     console.error("Error fetching my modules:", err);
@@ -422,6 +494,7 @@ app.post("/modules", authenticateToken, async (req, res) => {
   try {
     const { title, description, category, difficulty } = req.body;
     const start = performance.now();
+
     const created = await db.one(
       `
       INSERT INTO modules (title, description, category, difficulty, user_id, is_published)
@@ -430,7 +503,13 @@ app.post("/modules", authenticateToken, async (req, res) => {
       `,
       [title, description, category, difficulty || "Beginner", req.user.user_id]
     );
-    console.log('modules POST api call finished in',performance.now() - start,'ms')
+
+    console.log(
+      "modules POST api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json(created);
   } catch (err) {
     console.error("Error creating module:", err);
@@ -443,6 +522,12 @@ app.put("/modules/:id", authenticateToken, async (req, res) => {
     const start = performance.now();
 
     const { id } = req.params;
+
+    const idError = validateNumericId(id, "module id");
+    if (idError) {
+      return res.status(400).json({ error: idError });
+    }
+
     const { title, description, category, difficulty } = req.body;
 
     const existing = await getOwnedModuleOrReject(id, req.user.user_id, res);
@@ -466,7 +551,13 @@ app.put("/modules/:id", authenticateToken, async (req, res) => {
         id,
       ]
     );
-    console.log('modules PUT api call finished in',performance.now() - start,'ms')
+
+    console.log(
+      "modules PUT api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json(updated);
   } catch (err) {
     console.error("Error updating module:", err);
@@ -479,6 +570,12 @@ app.patch("/modules/:id/publish", authenticateToken, async (req, res) => {
     const start = performance.now();
 
     const { id } = req.params;
+
+    const idError = validateNumericId(id, "module id");
+    if (idError) {
+      return res.status(400).json({ error: idError });
+    }
+
     const { is_published } = req.body;
 
     const existing = await getOwnedModuleOrReject(id, req.user.user_id, res);
@@ -493,7 +590,13 @@ app.patch("/modules/:id/publish", authenticateToken, async (req, res) => {
       `,
       [Boolean(is_published), id]
     );
-    console.log('modules/publish PATCH api call finished in',performance.now() - start,'ms')
+
+    console.log(
+      "modules/publish PATCH api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json(updated);
   } catch (err) {
     console.error("Error publishing module:", err);
@@ -507,6 +610,11 @@ app.delete("/modules/:id", authenticateToken, async (req, res) => {
 
     const { id } = req.params;
 
+    const idError = validateNumericId(id, "module id");
+    if (idError) {
+      return res.status(400).json({ error: idError });
+    }
+
     const existing = await getOwnedModuleOrReject(id, req.user.user_id, res);
     if (!existing) return;
 
@@ -517,7 +625,13 @@ app.delete("/modules/:id", authenticateToken, async (req, res) => {
 
     // Then delete the module
     await db.none("DELETE FROM modules WHERE module_id = $1", [id]);
-    console.log('modules DELETE api call finished in',performance.now() - start,'ms')
+
+    console.log(
+      "modules DELETE api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json({ success: true, message: "Module and its exercises deleted" });
   } catch (err) {
     console.error("Error deleting module:", err);
@@ -653,6 +767,11 @@ app.get(
     try {
       const { classId } = req.params;
 
+      const classIdError = validateNumericId(classId, "class id");
+      if (classIdError) {
+        return res.status(400).json({ error: classIdError });
+      }
+
       const classRecord = await db.oneOrNone(
         "SELECT * FROM classes WHERE class_id = $1 AND teacher_id = $2",
         [classId, req.user.user_id]
@@ -697,6 +816,16 @@ app.post(
     try {
       const { id } = req.params;
       const { class_id } = req.body;
+
+      const idError = validateNumericId(id, "module id");
+      if (idError) {
+        return res.status(400).json({ error: idError });
+      }
+
+      const classIdError = validateNumericId(class_id, "class id");
+      if (classIdError) {
+        return res.status(400).json({ error: classIdError });
+      }
 
       if (!class_id) {
         return res.status(400).json({ error: "class_id is required" });
@@ -743,6 +872,11 @@ app.post("/modules/:id/share/user", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { email } = req.body;
+
+    const idError = validateNumericId(id, "module id");
+    if (idError) {
+      return res.status(400).json({ error: idError });
+    }
 
     if (!email) {
       return res.status(400).json({ error: "email is required" });
@@ -828,6 +962,11 @@ app.get("/classes/:classId/modules", authenticateToken, async (req, res) => {
   try {
     const { classId } = req.params;
 
+    const classIdError = validateNumericId(classId, "class id");
+    if (classIdError) {
+      return res.status(400).json({ error: classIdError });
+    }
+
     const membership = await db.oneOrNone(
       `
       SELECT *
@@ -868,44 +1007,58 @@ app.get("/classes/:classId/modules", authenticateToken, async (req, res) => {
 
 // Stop sharing a module.
 // Only the person who shared it or the module owner can remove the shared record.
-app.delete("/shared/modules/:sharedModuleId", authenticateToken, async (req, res) => {
-  try {
-    const { sharedModuleId } = req.params;
+app.delete(
+  "/shared/modules/:sharedModuleId",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { sharedModuleId } = req.params;
 
-    const sharedRecord = await db.oneOrNone(
-      `
-      SELECT sm.*, m.user_id AS module_owner_id
-      FROM shared_modules sm
-      JOIN modules m ON m.module_id = sm.module_id
-      WHERE sm.shared_module_id = $1;
-      `,
-      [sharedModuleId]
-    );
+      const sharedIdError = validateNumericId(
+        sharedModuleId,
+        "shared module id"
+      );
+      if (sharedIdError) {
+        return res.status(400).json({ error: sharedIdError });
+      }
 
-    if (!sharedRecord) {
-      return res.status(404).json({ error: "Shared module record not found" });
+      const sharedRecord = await db.oneOrNone(
+        `
+        SELECT sm.*, m.user_id AS module_owner_id
+        FROM shared_modules sm
+        JOIN modules m ON m.module_id = sm.module_id
+        WHERE sm.shared_module_id = $1;
+        `,
+        [sharedModuleId]
+      );
+
+      if (!sharedRecord) {
+        return res
+          .status(404)
+          .json({ error: "Shared module record not found" });
+      }
+
+      const canDelete =
+        sharedRecord.shared_by_user_id === req.user.user_id ||
+        sharedRecord.module_owner_id === req.user.user_id;
+
+      if (!canDelete) {
+        return res.status(403).json({
+          error: "You do not have permission to remove this shared module",
+        });
+      }
+
+      await db.none("DELETE FROM shared_modules WHERE shared_module_id = $1", [
+        sharedModuleId,
+      ]);
+
+      res.json({ success: true, message: "Shared module removed" });
+    } catch (err) {
+      console.error("Error removing shared module:", err);
+      res.status(500).json({ error: err.message });
     }
-
-    const canDelete =
-      sharedRecord.shared_by_user_id === req.user.user_id ||
-      sharedRecord.module_owner_id === req.user.user_id;
-
-    if (!canDelete) {
-      return res.status(403).json({
-        error: "You do not have permission to remove this shared module",
-      });
-    }
-
-    await db.none("DELETE FROM shared_modules WHERE shared_module_id = $1", [
-      sharedModuleId,
-    ]);
-
-    res.json({ success: true, message: "Shared module removed" });
-  } catch (err) {
-    console.error("Error removing shared module:", err);
-    res.status(500).json({ error: err.message });
   }
-});
+);
 
 // ---------- exercises routes ----------
 
@@ -915,6 +1068,11 @@ app.get("/exercises/:id", optionalAuthenticateToken, async (req, res) => {
     const start = performance.now();
 
     const { id } = req.params;
+
+    const idError = validateNumericId(id, "exercise id");
+    if (idError) {
+      return res.status(400).json({ error: idError });
+    }
 
     const data = await db.oneOrNone(
       `
@@ -946,7 +1104,13 @@ app.get("/exercises/:id", optionalAuthenticateToken, async (req, res) => {
         parsedSolution = [];
       }
     }
-    console.log('exercise GET api call finished in',performance.now() - start,'ms')
+
+    console.log(
+      "exercise GET api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json({
       exercise_id: data.exercise_id,
       module_id: data.module_id,
@@ -976,6 +1140,12 @@ app.post("/exercises", authenticateToken, async (req, res) => {
     } = req.body;
 
     const start = performance.now();
+
+    const moduleIdError = validateNumericId(module_id, "module id");
+    if (moduleIdError) {
+      return res.status(400).json({ error: moduleIdError });
+    }
+
     const moduleRecord = await db.oneOrNone(
       "SELECT * FROM modules WHERE module_id = $1",
       [module_id]
@@ -995,17 +1165,15 @@ app.post("/exercises", authenticateToken, async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *;
       `,
-      [
-        module_id,
-        title,
-        description,
-        difficulty || "Beginner",
-        ipos,
-        solution,
-        color,
-      ]
+      [module_id, title, description, difficulty || "Beginner", ipos, solution, color]
     );
-    console.log('/exercises POST api call finished in',performance.now() - start,'ms');
+
+    console.log(
+      "/exercises POST api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json(created);
   } catch (err) {
     console.error("Error creating exercise:", err);
@@ -1016,6 +1184,12 @@ app.post("/exercises", authenticateToken, async (req, res) => {
 app.put("/exercises/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const idError = validateNumericId(id, "exercise id");
+    if (idError) {
+      return res.status(400).json({ error: idError });
+    }
+
     const {
       module_id,
       title,
@@ -1027,6 +1201,7 @@ app.put("/exercises/:id", authenticateToken, async (req, res) => {
     } = req.body;
 
     const start = performance.now();
+
     const existing = await db.oneOrNone(
       "SELECT * FROM exercise WHERE exercise_id = $1",
       [id]
@@ -1073,7 +1248,13 @@ app.put("/exercises/:id", authenticateToken, async (req, res) => {
         id,
       ]
     );
-    console.log('/exercises PUT api call finished in',performance.now() - start,'ms');
+
+    console.log(
+      "/exercises PUT api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json(updated);
   } catch (err) {
     console.error("Error updating exercise:", err);
@@ -1084,7 +1265,14 @@ app.put("/exercises/:id", authenticateToken, async (req, res) => {
 app.delete("/exercises/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const idError = validateNumericId(id, "exercise id");
+    if (idError) {
+      return res.status(400).json({ error: idError });
+    }
+
     const start = performance.now();
+
     const existing = await db.oneOrNone(
       "SELECT * FROM exercise WHERE exercise_id = $1",
       [id]
@@ -1104,7 +1292,13 @@ app.delete("/exercises/:id", authenticateToken, async (req, res) => {
     }
 
     await db.none("DELETE FROM exercise WHERE exercise_id = $1", [id]);
-    console.log('/exercises DELETE api call finished in',performance.now() - start,'ms');
+
+    console.log(
+      "/exercises DELETE api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
     res.json({ success: true, message: "Exercise deleted" });
   } catch (err) {
     console.error("Error deleting exercise:", err);
@@ -1116,6 +1310,12 @@ app.delete("/exercises/:id", authenticateToken, async (req, res) => {
 app.get("/modules/:id/exercises", optionalAuthenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const idError = validateNumericId(id, "module id");
+    if (idError) {
+      return res.status(400).json({ error: idError });
+    }
+
     const userId = req.user ? req.user.user_id : null;
 
     const access = await canUserAccessModule(id, userId);
