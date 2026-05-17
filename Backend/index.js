@@ -187,6 +187,8 @@ const buildExercise = async (id) => {
 
 app.post("/auth/signup", async (req, res) => {
   try {
+    const start = performance.now();
+
     const { username, email, password, role } = req.body;
 
     if (!username || !email || !password) {
@@ -227,6 +229,8 @@ app.post("/auth/signup", async (req, res) => {
 
 app.post("/auth/login", async (req, res) => {
   try {
+    const start = performance.now();
+
     const { email, password } = req.body;
 
     const user = await db.oneOrNone("SELECT * FROM users WHERE email = $1", [
@@ -436,6 +440,8 @@ app.post("/modules", authenticateToken, async (req, res) => {
 
 app.put("/modules/:id", authenticateToken, async (req, res) => {
   try {
+    const start = performance.now();
+
     const { id } = req.params;
     const { title, description, category, difficulty } = req.body;
 
@@ -470,6 +476,8 @@ app.put("/modules/:id", authenticateToken, async (req, res) => {
 
 app.patch("/modules/:id/publish", authenticateToken, async (req, res) => {
   try {
+    const start = performance.now();
+
     const { id } = req.params;
     const { is_published } = req.body;
 
@@ -495,6 +503,8 @@ app.patch("/modules/:id/publish", authenticateToken, async (req, res) => {
 
 app.delete("/modules/:id", authenticateToken, async (req, res) => {
   try {
+    const start = performance.now();
+
     const { id } = req.params;
 
     const existing = await getOwnedModuleOrReject(id, req.user.user_id, res);
@@ -902,6 +912,8 @@ app.delete("/shared/modules/:sharedModuleId", authenticateToken, async (req, res
 // This route now checks access to the module connected to the exercise.
 app.get("/exercises/:id", optionalAuthenticateToken, async (req, res) => {
   try {
+    const start = performance.now();
+
     const { id } = req.params;
 
     const data = await db.oneOrNone(
