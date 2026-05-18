@@ -11,7 +11,7 @@ const ExBoard = ({ ref }: {ref?: any}) =>{
     const refBoard = useRef(new Chess());
     const currBoard = refBoard.current
 
-    type move = { from: string, to: string | null, pieceType: DraggingPieceDataType };
+    type move = { from: string, to: string | null, pieceType: DraggingPieceDataType ,promotion: string};
     type exercise = { ipos: string, solution: string[], color: boolean };
     
     const autoMove = () => {
@@ -37,7 +37,7 @@ const ExBoard = ({ ref }: {ref?: any}) =>{
 
     const makeMove = (move:move) => {
         if(move.to){
-            currBoard.move({from: move.from, to: move.to})
+            currBoard.move({from: move.from, to: move.to, promotion: move.promotion})
         }
         if(currBoard.history().pop() != currExercise.current.solution[turnCount.current]){
             currBoard.undo();
@@ -49,7 +49,7 @@ const ExBoard = ({ ref }: {ref?: any}) =>{
 
     function onPieceDrop({sourceSquare, targetSquare, piece}:PieceDropHandlerArgs){
         if(sourceSquare == targetSquare){return false;}
-        const moveAttempt = {from: sourceSquare, to:targetSquare ,pieceType: piece};
+        const moveAttempt = {from: sourceSquare, to:targetSquare ,pieceType: piece, promotion:'q'};
         makeMove(moveAttempt);
         
         return true;

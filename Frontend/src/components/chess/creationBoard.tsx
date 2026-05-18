@@ -22,7 +22,7 @@ const CBoard = ({ ref }:{ref?: any}) => {
     const refChess = useRef(new Chess(boardPos,{skipValidation: true}));
     const currChess = refChess.current;
 
-    type move = { from: string, to: string | null, pieceType: DraggingPieceDataType };
+    type move = { from: string, to: string | null, pieceType: DraggingPieceDataType , promotion: string};
     type exercise = { ipos: string, solution: string[], color: boolean };
 
     //Saves an exercise to the Data Base
@@ -93,7 +93,7 @@ const CBoard = ({ ref }:{ref?: any}) => {
     }
 
     //makes moves when pieces are drop inside board
-    const movePiece = ({ from, to, pieceType }:move) => {
+    const movePiece = ({ from, to, pieceType, promotion}:move) => {
         var piece = pieceType.pieceType;
         if(to){
             if(initialPos.current){
@@ -103,7 +103,7 @@ const CBoard = ({ ref }:{ref?: any}) => {
                 //plays moves with rules attached
                 if(currChess.history().length == 0){currChess.setTurn(piece[0] as Color)}
                 //plays moves with rules attached
-                currChess.move({from: from, to:to });
+                currChess.move({from: from, to:to, promotion:promotion});
             }
         }
         setPos(currChess.fen());
@@ -134,7 +134,7 @@ const CBoard = ({ ref }:{ref?: any}) => {
 
     function onPieceDrop({sourceSquare, targetSquare, piece}:PieceDropHandlerArgs){
         if(sourceSquare == targetSquare){return false;}
-        const move = {from: sourceSquare, to:targetSquare, pieceType: piece};
+        const move = {from: sourceSquare, to:targetSquare, pieceType: piece, promotion:'q'};
         if(piece.isSparePiece){
             placePiece(move);
         }else if(targetSquare == null){
