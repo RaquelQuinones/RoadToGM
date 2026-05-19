@@ -63,50 +63,6 @@ export default function CreateContentPage() {
     return color === "b";
   }
 
-  function convertSolutionToSan(solutionInput, fen, color) {
-    const chess = new Chess(fen);
-
-    if (color === "b") {
-      chess.setTurn("b");
-    } else {
-      chess.setTurn("w");
-    }
-
-    const raw = String(solutionInput).trim();
-
-    const parts = raw
-      .split(",")
-      .map((x) => x.trim())
-      .filter(Boolean);
-
-    if (parts.length === 0) {
-      throw new Error("Solution is empty.");
-    }
-
-    if (parts.length % 2 !== 0) {
-      throw new Error(
-        "Solution must be entered as from,to pairs. Example: e2,e4,e7,e5"
-      );
-    }
-
-    const sanMoves = [];
-
-    for (let i = 0; i < parts.length; i += 2) {
-      const from = parts[i];
-      const to = parts[i + 1];
-
-      const move = chess.move({ from, to, promotion: "q" });
-
-      if (!move) {
-        throw new Error(`Invalid move in solution: ${from} to ${to}`);
-      }
-
-      sanMoves.push(move.san);
-    }
-
-    return `{${sanMoves.join(",")}}`;
-  }
-
   async function checkAuth() {
     const token = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
@@ -237,11 +193,10 @@ export default function CreateContentPage() {
       return;
     }
     try {
-      const formattedSolution = convertSolutionToSan(
-        exerciseForm.solution,
-        exerciseForm.ipos,
-        exerciseForm.color
-      );
+      
+      if (exerciseForm.solution === '{}') {
+      throw new Error("Solution is empty.");
+      }
 
       const response = await fetch("http://localhost:3000/exercises", {
         method: "POST",
@@ -252,8 +207,6 @@ export default function CreateContentPage() {
         body: JSON.stringify({
           ...exerciseForm,
           module_id: Number(exerciseForm.module_id),
-          solution: formattedSolution,
-          color: formatColorForDb(exerciseForm.color),
         }),
       });
 
@@ -544,7 +497,7 @@ export default function CreateContentPage() {
                         fontWeight: 700,
                         cursor: "pointer",
                       }}> Save </button>}
-                    {initialPos && <button type = "button" onClick = {() => {setInitial(false); creationBoard.current.cancelPos();}} style={{
+                    {initialPos && <button type = "button" onClick = {() => {setInitial(false); creationBoard.current.cancelPos(); exerciseForm.solution = '{}';}} style={{
                         background: "#e53e3e",
                         color: colors.white,
                         border: "none",
