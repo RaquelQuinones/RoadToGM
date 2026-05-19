@@ -1147,6 +1147,372 @@ app.get("/modules/:id/exercises", optionalAuthenticateToken, async (req, res) =>
   }
 });
 
+// ---------- progress routes ----------
+
+// Save or update progress for the exercise the logged-in user is working on.
+// The frontend should call this every time the user makes a correct move.
+// When moves_completed >= total_moves, the exercise is marked as done.
+app.post("/progress/exercises/:exerciseId", authenticateToken, async (req, res) => {
+  try {
+    const start = performance.now();
+
+    const { exerciseId } = req.params;
+    const { moves_completed, total_moves } = req.body;
+
+    const exerciseRecord = await db.oneOrNone(
+      `
+      SELECT exercise_id, module_id, solution
+      FROM exercise
+      WHERE exercise_id = $1;
+      `,
+      [exerciseId]
+    );
+
+    if (!exerciseRecord) {
+      return res.status(404).json({ error: "Exercise not found" });
+    }
+
+    const access = await canUserAccessModule(
+      exerciseRecord.module_id,
+      req.user.user_id
+    );
+
+    if (!access.allowed) {
+      return res.status(403).json({
+        error: "You do not have access to this exercise",
+      });
+    }
+
+    const completedMoves = Number(moves_completed) || 0;
+    const totalMoves = Number(total_moves) || 0;
+    const isDone = totalMoves > 0 && completedMoves >= totalMoves;
+
+    const progress = await db.one(
+      `
+      INSERT INTO user_exercise_progress (
+        user_id,
+        exercise_id,
+        module_id,
+        moves_completed,
+        total_moves,
+        is_done,
+        completed_at
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6,
+        CASE WHEN $6 = TRUE THEN CURRENT_TIMESTAMP ELSE NULL END
+      )
+      ON CONFLICT (user_id, exercise_id)
+      DO UPDATE SET
+        module_id = EXCLUDED.module_id,
+        moves_completed = EXCLUDED.moves_completed,
+        total_moves = EXCLUDED.total_moves,
+        is_done = EXCLUDED.is_done,
+        completed_at = CASE
+          WHEN EXCLUDED.is_done = TRUE THEN CURRENT_TIMESTAMP
+          ELSE user_exercise_progress.completed_at
+        END
+      RETURNING *;
+      `,
+      [
+        req.user.user_id,
+        exerciseRecord.exercise_id,
+        exerciseRecord.module_id,
+        completedMoves,
+        totalMoves,
+        isDone,
+      ]
+    );
+
+    console.log(
+      "/progress/exercises/:exerciseId POST api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
+    res.json({
+      success: true,
+      message: isDone ? "Exercise completed" : "Exercise progress updated",
+      progress,
+    });
+  } catch (err) {
+    console.error("Error saving exercise progress:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Mark an exercise as fully completed.
+app.post(
+  "/progress/exercises/:exerciseId/complete",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const start = performance.now();
+
+      const { exerciseId } = req.params;
+      const { total_moves } = req.body;
+
+      const exerciseRecord = await db.oneOrNone(
+        `
+        SELECT exercise_id, module_id, solution
+        FROM exercise
+        WHERE exercise_id = $1;
+        `,
+        [exerciseId]
+      );
+
+      if (!exerciseRecord) {
+        return res.status(404).json({ error: "Exercise not found" });
+      }
+
+      const access = await canUserAccessModule(
+        exerciseRecord.module_id,
+        req.user.user_id
+      );
+
+      if (!access.allowed) {
+        return res.status(403).json({
+          error: "You do not have access to this exercise",
+        });
+      }
+
+      const totalMoves = Number(total_moves) || 0;
+
+      const progress = await db.one(
+        `
+        INSERT INTO user_exercise_progress (
+          user_id,
+          exercise_id,
+          module_id,
+          moves_completed,
+          total_moves,
+          is_done,
+          completed_at
+        )
+        VALUES ($1, $2, $3, $4, $4, TRUE, CURRENT_TIMESTAMP)
+        ON CONFLICT (user_id, exercise_id)
+        DO UPDATE SET
+          module_id = EXCLUDED.module_id,
+          moves_completed = EXCLUDED.moves_completed,
+          total_moves = EXCLUDED.total_moves,
+          is_done = TRUE,
+          completed_at = CURRENT_TIMESTAMP
+        RETURNING *;
+        `,
+        [
+          req.user.user_id,
+          exerciseRecord.exercise_id,
+          exerciseRecord.module_id,
+          totalMoves,
+        ]
+      );
+
+      console.log(
+        "/progress/exercises/:exerciseId/complete POST api call finished in",
+        performance.now() - start,
+        "ms"
+      );
+
+      res.json({
+        success: true,
+        message: "Exercise completed",
+        progress,
+      });
+    } catch (err) {
+      console.error("Error completing exercise:", err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// Get the logged-in user's progress for one module.
+app.get("/progress/modules/:moduleId", authenticateToken, async (req, res) => {
+  try {
+    const start = performance.now();
+
+    const { moduleId } = req.params;
+
+    const access = await canUserAccessModule(moduleId, req.user.user_id);
+
+    if (!access.moduleRecord) {
+      return res.status(404).json({ error: "Module not found" });
+    }
+
+    if (!access.allowed) {
+      return res.status(403).json({
+        error: "You do not have access to this module",
+      });
+    }
+
+    const progress = await db.one(
+      `
+      SELECT
+        m.module_id,
+        m.title AS module_title,
+        m.category,
+        COUNT(e.exercise_id)::INTEGER AS total_exercises,
+        COUNT(uep.exercise_id) FILTER (
+          WHERE uep.is_done = TRUE
+        )::INTEGER AS completed_exercises,
+        COALESCE(
+          ROUND(
+            (
+              COUNT(uep.exercise_id) FILTER (WHERE uep.is_done = TRUE)::DECIMAL
+              / NULLIF(COUNT(e.exercise_id), 0)
+            ) * 100,
+            2
+          ),
+          0
+        ) AS progress_percentage
+      FROM modules m
+      LEFT JOIN exercise e
+        ON e.module_id = m.module_id
+      LEFT JOIN user_exercise_progress uep
+        ON uep.exercise_id = e.exercise_id
+        AND uep.user_id = $2
+      WHERE m.module_id = $1
+      GROUP BY m.module_id, m.title, m.category;
+      `,
+      [moduleId, req.user.user_id]
+    );
+
+    console.log(
+      "/progress/modules/:moduleId GET api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
+    res.json(progress);
+  } catch (err) {
+    console.error("Error fetching module progress:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get the logged-in user's progress for all modules they can see.
+app.get("/progress/my/modules", authenticateToken, async (req, res) => {
+  try {
+    const start = performance.now();
+
+    const progress = await db.any(
+      `
+      SELECT
+        m.module_id,
+        m.title AS module_title,
+        m.category,
+        COUNT(e.exercise_id)::INTEGER AS total_exercises,
+        COUNT(uep.exercise_id) FILTER (
+          WHERE uep.is_done = TRUE
+        )::INTEGER AS completed_exercises,
+        COALESCE(
+          ROUND(
+            (
+              COUNT(uep.exercise_id) FILTER (WHERE uep.is_done = TRUE)::DECIMAL
+              / NULLIF(COUNT(e.exercise_id), 0)
+            ) * 100,
+            2
+          ),
+          0
+        ) AS progress_percentage
+      FROM modules m
+      LEFT JOIN exercise e
+        ON e.module_id = m.module_id
+      LEFT JOIN user_exercise_progress uep
+        ON uep.exercise_id = e.exercise_id
+        AND uep.user_id = $1
+      WHERE
+        m.is_published = TRUE
+        OR m.is_published IS NULL
+        OR m.user_id = $1
+        OR EXISTS (
+          SELECT 1
+          FROM shared_modules sm
+          LEFT JOIN class_members cm
+            ON cm.class_id = sm.class_id
+          WHERE sm.module_id = m.module_id
+            AND (
+              sm.shared_with_user_id = $1
+              OR cm.user_id = $1
+            )
+        )
+      GROUP BY m.module_id, m.title, m.category
+      ORDER BY m.module_id ASC;
+      `,
+      [req.user.user_id]
+    );
+
+    console.log(
+      "/progress/my/modules GET api call finished in",
+      performance.now() - start,
+      "ms"
+    );
+
+    res.json(progress);
+  } catch (err) {
+    console.error("Error fetching all module progress:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get the logged-in user's progress for all exercises inside one module.
+app.get(
+  "/progress/modules/:moduleId/exercises",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const start = performance.now();
+
+      const { moduleId } = req.params;
+
+      const access = await canUserAccessModule(moduleId, req.user.user_id);
+
+      if (!access.moduleRecord) {
+        return res.status(404).json({ error: "Module not found" });
+      }
+
+      if (!access.allowed) {
+        return res.status(403).json({
+          error: "You do not have access to this module",
+        });
+      }
+
+      const exercises = await db.any(
+        `
+        SELECT
+          e.exercise_id,
+          e.module_id,
+          e.title,
+          e.description,
+          e.difficulty,
+          COALESCE(uep.moves_completed, 0)::INTEGER AS moves_completed,
+          COALESCE(uep.total_moves, 0)::INTEGER AS total_moves,
+          COALESCE(uep.is_done, FALSE) AS is_done,
+          uep.started_at,
+          uep.completed_at
+        FROM exercise e
+        LEFT JOIN user_exercise_progress uep
+          ON uep.exercise_id = e.exercise_id
+          AND uep.user_id = $2
+        WHERE e.module_id = $1
+        ORDER BY e.exercise_id ASC;
+        `,
+        [moduleId, req.user.user_id]
+      );
+
+      console.log(
+        "/progress/modules/:moduleId/exercises GET api call finished in",
+        performance.now() - start,
+        "ms"
+      );
+
+      res.json(exercises);
+    } catch (err) {
+      console.error("Error fetching exercise progress:", err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 // ---------- start server ----------
 
 app.listen(PORT, () => {

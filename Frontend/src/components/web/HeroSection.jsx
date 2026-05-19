@@ -7,6 +7,7 @@ export default function HeroSection({
   buttonText,
   buttonHref,
   image,
+  imageComponent,
 }) {
   return (
     <section
@@ -117,9 +118,12 @@ export default function HeroSection({
           alignItems: "center",
           justifyContent: "center",
           position: "relative",
+          padding: imageComponent ? "24px" : "0",
         }}
       >
-        {image ? (
+        {imageComponent ? (
+          imageComponent
+        ) : image ? (
           <img
             src={image}
             alt="Hero visual"

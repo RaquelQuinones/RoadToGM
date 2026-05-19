@@ -14,7 +14,15 @@ import Footer from "../components/web/Footer";
 import AuthStatus from "../components/AuthStatus";
 
 import Logo from "../images/Logo.png";
+import interactive from "../images/interactive.png";
+import share from "../images/share.png";
+import create from "../images/create.png";
+import explore from "../images/explore.png";
+
 import { colors } from "../palette/color.js";
+
+import AnimatedChessBoard from "../components/web/AnimationChessboard";
+
 
 export default function Home() {
   const navigate = useNavigate();
@@ -78,28 +86,28 @@ export default function Home() {
       eyebrow: "Learn",
       title: "Structured Module Learning",
       text: "Train through focused modules instead of random puzzles, and build a routine around your weaknesses.",
-      image: Logo,
+      image: explore,
       href: "/modules",
     },
     {
       eyebrow: "Create",
       title: "Create Your Own Training",
       text: "Design your own modules and exercises so your preparation matches the way you want to learn.",
-      image: Logo,
+      image: create,
       href: "/create",
     },
     {
       eyebrow: "Share",
       title: "Share With Others",
       text: "Use the platform to support clubs, classrooms, and collaborative learning experiences.",
-      image: Logo,
+      image: share,
       href: "/modules",
     },
     {
       eyebrow: "Practice",
       title: "Interactive Exercise Play",
       text: "Practice positions directly on the board with move validation and guided exercise solving.",
-      image: Logo,
+      image: interactive,
       href: "/exercise/1",
     },
   ];
@@ -160,7 +168,7 @@ export default function Home() {
           subtitle="Road To GM helps you learn through organized modules, interactive exercises, and personalized training routines you can build and revisit anytime."
           buttonText={currentUser ? "Create Content" : "Get Started"}
           buttonHref={currentUser ? "/create" : "/signup"}
-          image={Logo}
+          imageComponent={<AnimatedChessBoard />}
         />
 
         <ObjectivesGrid
@@ -180,27 +188,10 @@ export default function Home() {
           }}
         >
           <div>
-            <h2
-              style={{
-                margin: 0,
-                color: colors.white,
-                fontSize: "2rem",
-              }}
-            >
-              Explore learning areas
-            </h2>
-            <p
-              style={{
-                marginTop: "8px",
-                marginBottom: 0,
-                color: colors.text,
-              }}
-            >
-              Browse modules by category and start training with focused content.
-            </p>
+            
           </div>
 
-          <ModuleCatalog sections={moduleSections} />
+          
         </section>
       </div>
 

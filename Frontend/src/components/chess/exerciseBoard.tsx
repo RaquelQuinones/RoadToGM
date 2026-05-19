@@ -3,8 +3,25 @@ import { Chessboard, type DraggingPieceDataType, type PieceDropHandlerArgs } fro
 import { Chess, type Color } from 'chess.js'
 const sisterPort = 'http://localhost:3000';
 
+type ExerciseBoardProps = {
+    ref?: any;
+    exercise?: any;
+    solutionMoves?: string[];
+    moveIndex?: number;
+    isExerciseDone?: boolean;
+    onCorrectMove?: () => void;
+    onExerciseComplete?: () => void;
+};
 
-const ExBoard = ({ ref }: {ref?: any}) =>{
+const ExBoard = ({
+    ref,
+    exercise,
+    solutionMoves,
+    moveIndex,
+    isExerciseDone,
+    onCorrectMove,
+    onExerciseComplete,
+}: ExerciseBoardProps) =>{
     var [boardPos, setPos] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');
     const currExercise = useRef({} as exercise);
     const turnCount = useRef(0);
@@ -24,6 +41,13 @@ const ExBoard = ({ ref }: {ref?: any}) =>{
         currBoard.move(nextMove);
         turnCount.current = turnCount.current + 1;
         setPos(currBoard.fen());
+
+        if (
+            currExercise.current.solution &&
+            turnCount.current >= currExercise.current.solution.length
+        ) {
+            onExerciseComplete?.();
+        }
     }
     
     if (
@@ -36,15 +60,30 @@ const ExBoard = ({ ref }: {ref?: any}) =>{
     }
 
     const makeMove = (move:move) => {
+        if (isExerciseDone) {
+            return;
+        }
+
         if(move.to){
             currBoard.move({from: move.from, to: move.to, promotion: move.promotion})
         }
+
         if(currBoard.history().pop() != currExercise.current.solution[turnCount.current]){
             currBoard.undo();
             turnCount.current = turnCount.current - 1;
+        } else {
+            onCorrectMove?.();
         }
+
         setPos(currBoard.fen());
         turnCount.current = turnCount.current + 1;
+
+        if (
+            currExercise.current.solution &&
+            turnCount.current >= currExercise.current.solution.length
+        ) {
+            onExerciseComplete?.();
+        }
     }
 
     function onPieceDrop({sourceSquare, targetSquare, piece}:PieceDropHandlerArgs){

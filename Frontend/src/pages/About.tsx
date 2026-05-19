@@ -10,18 +10,18 @@ import UpperBar, {
 import MeetOurTeam from "../components/MeetOurTeam";
 import { colors } from "../palette/color.js";
 import Logo from "../images/Logo.png";
+import raquel from "../images/raquel.png";
 import AuthStatus from "../components/AuthStatus";
+import AnimatedChessBoard from "../components/web/AnimationChessboard.js";
 
-// import Person1 from "../images/person1.jpg";
-// import Person2 from "../images/person2.jpg";
-// import Person3 from "../images/person3.jpg";
+
 
 //This needs the story, photo, who is behing this, why we are doing this, the resolution and a footer.
 
 export default function About() {
   const teamMembers = [
     {
-      image: Logo,
+      image: raquel,
       name: "Raquel",
       role: "Founder / Developer",
       description:
@@ -87,38 +87,50 @@ export default function About() {
       </UpperBar>
 
       <section
-        style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
-          padding: "70px 40px 30px 40px",
-          textAlign: "center",
-        }}
-      >
-        <h1
           style={{
-            margin: 0,
-            color: colors.white,
-            fontSize: "54px",
+            maxWidth: "1200px",
+            margin: "0 auto",
+            padding: "70px 40px 30px 40px",
+            textAlign: "center",
           }}
         >
-          About Road To GM
-        </h1>
+          <h1
+            style={{
+              margin: 0,
+              color: colors.white,
+              fontSize: "54px",
+            }}
+          >
+            About Road To GM
+          </h1>
 
-        <p
-          style={{
-            margin: "20px auto 0 auto",
-            maxWidth: "850px",
-            color: colors.text,
-            fontSize: "20px",
-            lineHeight: 1.7,
-          }}
-        >
-          Road To GM is a chess learning platform designed to help players improve
-          through structured modules in tactics, strategy, openings, and endings.
-          Our goal is to make chess training more organized, interactive, and
-          personal.
-        </p>
-      </section>
+          <p
+            style={{
+              margin: "20px auto 0 auto",
+              maxWidth: "850px",
+              color: colors.text,
+              fontSize: "20px",
+              lineHeight: 1.7,
+            }}
+          >
+            Road To GM is a chess learning platform designed to help players improve
+            through structured modules in tactics, strategy, openings, and endings.
+            Our goal is to make chess training more organized, interactive, and
+            personal.
+          </p>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              marginTop: "40px",
+              width: "100%",
+            }}
+          >
+            <AnimatedChessBoard />
+          </div>
+        </section>
 
       <MeetOurTeam members={teamMembers} />
     </div>
